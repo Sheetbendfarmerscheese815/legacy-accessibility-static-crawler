@@ -1,0 +1,17 @@
+.env
+bin/
+obj/
+.dotnet*/
+artifacts/
+reports/
+screenshots/
+captures/
+raw-html/
+cookies/
+storage-state/
+TestResults/
+*.user
+*.suo
+*.nupkg
+*.zip
+appsettings.local.json

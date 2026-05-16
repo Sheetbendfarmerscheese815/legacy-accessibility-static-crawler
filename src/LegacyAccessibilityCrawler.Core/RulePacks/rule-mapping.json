@@ -1,0 +1,9 @@
+{
+  "WCAG21-1.1.1-IMG-ALT": ["Section508: Non-text content"],
+  "WCAG21-1.3.1-FORM-LABEL": ["Section508: Info and relationships", "ICTBaseline: Forms"],
+  "WCAG21-2.4.2-PAGE-TITLE": ["Section508: Page titled"],
+  "WCAG21-2.4.4-LINK-NAME": ["Section508: Link purpose"],
+  "WCAG21-4.1.2-BUTTON-NAME": ["Section508: Name role value"],
+  "WCAG21-4.1.2-ARIA-REFERENCE": ["Section508: Name role value"],
+  "LEGACY-IE-MODE-MANUAL-REVIEW": ["Manual validation", "Legacy system risk"]
+}

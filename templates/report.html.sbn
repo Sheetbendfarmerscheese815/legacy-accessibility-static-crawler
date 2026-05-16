@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Accessibility Assessment Report</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #172033; margin: 2rem; line-height: 1.45; }
+    h1, h2 { color: #10203f; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0 2rem; }
+    th, td { border: 1px solid #cfd7e3; padding: .55rem; text-align: left; vertical-align: top; }
+    th { background: #eef2f7; }
+    .notice { border-left: 4px solid #9a5b13; background: #fff7e6; padding: 1rem; }
+    .meta { color: #536070; }
+  </style>
+</head>
+<body>
+  <h1>Accessibility Assessment Report</h1>
+  <p class="meta">{{ product }} {{ version }} | Commit {{ commit }} | Build {{ build_date_utc }}</p>
+  <div class="notice">{{ disclaimer }}</div>
+  <h2>Summary</h2>
+  <p>Pages crawled: {{ page_count }}. Findings: {{ finding_count }}. Manual review required: {{ manual_review_count }}.</p>
+  <h2>Findings</h2>
+  <table>
+    <thead><tr><th>Severity</th><th>Page</th><th>Issue</th><th>Rule</th><th>Evidence</th><th>Manual Review</th></tr></thead>
+    <tbody>
+    {{ for finding in scan.findings }}
+      <tr>
+        <td>{{ finding.severity }}</td>
+        <td>{{ finding.page_url }}</td>
+        <td>{{ finding.issue_type }}</td>
+        <td>{{ finding.rule_id }}</td>
+        <td>{{ finding.evidence }}</td>
+        <td>{{ finding.needs_manual_review }}</td>
+      </tr>
+    {{ end }}
+    </tbody>
+  </table>
+</body>
+</html>

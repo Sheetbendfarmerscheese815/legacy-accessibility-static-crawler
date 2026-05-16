@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="RulePacks\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="RulePacks\*.json" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,34 @@
+[
+  {
+    "ruleId": "WCAG22-2.4.11-FOCUS-NOT-OBSCURED",
+    "standard": "WCAG 2.2",
+    "successCriterion": "2.4.11",
+    "level": "AA",
+    "title": "Focus Not Obscured requires manual or visual validation",
+    "description": "Static markup cannot prove whether focused components are obscured in all states.",
+    "appliesTo": ["focusable elements"],
+    "testMethod": "Collect focusable element evidence and require manual validation.",
+    "staticCheckSupported": false,
+    "manualReviewRequired": true,
+    "severityDefault": "Medium",
+    "keywords": ["focus", "obscured", "wcag 2.2"],
+    "remediationGuidance": "Ensure focused controls are not fully hidden by sticky headers, dialogs, overlays, or viewport constraints.",
+    "references": ["https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum"]
+  },
+  {
+    "ruleId": "WCAG22-2.5.8-TARGET-SIZE",
+    "standard": "WCAG 2.2",
+    "successCriterion": "2.5.8",
+    "level": "AA",
+    "title": "Target Size requires layout validation",
+    "description": "Static markup alone cannot reliably prove rendered target size.",
+    "appliesTo": ["links", "buttons", "controls"],
+    "testMethod": "Use Selenium evidence and manual review for rendered target size.",
+    "staticCheckSupported": false,
+    "manualReviewRequired": true,
+    "severityDefault": "Medium",
+    "keywords": ["target", "size", "pointer"],
+    "remediationGuidance": "Ensure pointer targets meet WCAG 2.2 target size or spacing exceptions.",
+    "references": ["https://www.w3.org/TR/WCAG22/#target-size-minimum"]
+  }
+]

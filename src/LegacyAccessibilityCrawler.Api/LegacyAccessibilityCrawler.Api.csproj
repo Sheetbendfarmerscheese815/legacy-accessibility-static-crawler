@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LegacyAccessibilityCrawler.Core\LegacyAccessibilityCrawler.Core.csproj" />
+    <ProjectReference Include="..\LegacyAccessibilityCrawler.Infrastructure\LegacyAccessibilityCrawler.Infrastructure.csproj" />
+    <ProjectReference Include="..\LegacyAccessibilityCrawler.Reporting\LegacyAccessibilityCrawler.Reporting.csproj" />
+  </ItemGroup>
+</Project>

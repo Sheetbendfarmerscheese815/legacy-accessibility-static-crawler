@@ -1,0 +1,19 @@
+{
+  "browserMode": "modern-edge",
+  "startUrl": "https://example.gov",
+  "maxPages": 25,
+  "crawlDepth": 2,
+  "delaySeconds": 1,
+  "sameDomainOnly": true,
+  "respectRobotsTxt": true,
+  "rulesPdfPath": "",
+  "outputDirectory": "reports/example",
+  "captureScreenshots": true,
+  "captureHtml": true,
+  "enableKeyboardChecks": true,
+  "enableWcag22EnhancedRules": false,
+  "enableSection508Rules": true,
+  "enablePdfRuleOverlay": true,
+  "redactQueryStrings": true,
+  "allowedDomains": []
+}

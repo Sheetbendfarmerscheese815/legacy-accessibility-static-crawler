@@ -1,0 +1,62 @@
+# Accessibility Assessment Report
+
+Tool: {{ product }} {{ version }}
+Commit: {{ commit }}
+Build date UTC: {{ build_date_utc }}
+
+## Executive Summary
+
+Pages crawled: {{ page_count }}
+Total findings: {{ finding_count }}
+Manual review required: {{ manual_review_count }}
+
+## Standards / Rule Sources Used
+
+- ADA Title II web accessibility baseline using WCAG 2.1 Level AA.
+- Section 508 ICT Testing Baseline where enabled.
+- WCAG 2.2 enhanced rule pack where enabled.
+- User-supplied PDF guidance overlay where supplied.
+
+## Browser Mode
+
+{{ scan.options.browser_mode }}
+
+## IE-mode Limitations
+
+{{ if ie_mode }}{{ scan.disclaimer }}{{ else }}Not applicable.{{ end }}
+
+## Findings By Severity
+
+{{ for item in by_severity }}- {{ item.severity }}: {{ item.count }}
+{{ end }}
+
+## Findings By WCAG Success Criterion
+
+{{ for item in by_criterion }}- {{ item.criterion }}: {{ item.count }}
+{{ end }}
+
+## Findings Requiring Manual Review
+
+{{ for finding in scan.findings }}{{ if finding.needs_manual_review }}- {{ finding.page_url }}: {{ finding.issue_type }} ({{ finding.rule_id }})
+{{ end }}{{ end }}
+
+## Top Recurring Issues
+
+{{ for item in recurring }}- {{ item.issue }}: {{ item.count }}
+{{ end }}
+
+## Per-page Findings
+
+{{ for page in scan.pages }}
+### {{ page.sanitized_url }}
+
+Screenshot: {{ page.screenshot_path }}
+HTML: {{ page.html_path }}
+
+{{ for finding in scan.findings }}{{ if finding.page_url == page.sanitized_url }}- [{{ finding.severity }}] {{ finding.issue_type }} - {{ finding.evidence }} ({{ finding.rule_id }})
+{{ end }}{{ end }}
+{{ end }}
+
+## Disclaimer
+
+{{ disclaimer }}

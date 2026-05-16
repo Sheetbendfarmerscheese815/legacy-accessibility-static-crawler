@@ -1,0 +1,2 @@
+PageUrl,PageTitle,BrowserMode,AssistiveTechnology,TestArea,IssueSummary,ObservedBehavior,ExpectedBehavior,RuleReference,Severity,ScreenshotPath,RemediationNotes
+https://legacy.example.gov/login,Legacy Login,EdgeIeModeAssisted,NVDA,Keyboard,Focus becomes trapped in custom date picker,Tab key cycles inside date picker and cannot reach Submit,Keyboard users can exit the widget and continue through the form,WCAG 2.1 2.1.2,High,screenshots/login-datepicker.png,Replace custom widget or implement documented keyboard support.

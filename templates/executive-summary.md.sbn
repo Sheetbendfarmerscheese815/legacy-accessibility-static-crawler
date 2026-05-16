@@ -1,0 +1,7 @@
+# Executive Summary
+
+{{ product }} {{ version }} assessed {{ page_count }} page(s) and produced {{ finding_count }} static finding(s).
+
+{{ manual_review_count }} finding(s) require manual accessibility review.
+
+This tool assists accessibility assessment, static evidence collection, remediation planning, and modernization backlog generation. It does not certify ADA, WCAG, or Section 508 compliance.

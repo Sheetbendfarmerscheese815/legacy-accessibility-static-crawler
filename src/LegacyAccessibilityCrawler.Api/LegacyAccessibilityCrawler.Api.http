@@ -1,0 +1,6 @@
+@LegacyAccessibilityCrawler.Api_HostAddress = http://localhost:0
+
+GET {{LegacyAccessibilityCrawler.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

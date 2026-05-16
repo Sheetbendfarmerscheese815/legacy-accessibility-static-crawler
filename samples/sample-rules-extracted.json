@@ -1,0 +1,20 @@
+[
+  {
+    "ruleId": "PDF-SAMPLE-1",
+    "standard": "PDF overlay / WCAG reference",
+    "successCriterion": "1.3.1",
+    "level": "",
+    "title": "Agency form labels",
+    "description": "Agency forms must expose visible and programmatic labels.",
+    "source": "pdf-overlay",
+    "sourcePage": 1,
+    "severityDefault": "High",
+    "keywords": ["form", "label", "input"],
+    "appliesTo": ["input", "select", "textarea"],
+    "testMethod": "Review form controls for visible labels and programmatic association.",
+    "staticCheckSupported": false,
+    "manualReviewRequired": true,
+    "remediationGuidance": "Use visible labels associated with controls by for/id.",
+    "references": ["WCAG 1.3.1"]
+  }
+]

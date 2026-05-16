@@ -1,0 +1,50 @@
+[
+  {
+    "ruleId": "508-501.1-SCOPE",
+    "standard": "Section 508 ICT Testing Baseline",
+    "successCriterion": "501.1",
+    "level": "Baseline",
+    "title": "Section 508 baseline mapping",
+    "description": "Section 508 web testing generally maps to WCAG 2.0/2.1 Level A and AA criteria for web content.",
+    "appliesTo": ["web"],
+    "testMethod": "Use static findings mapped to WCAG criteria as Section 508 evidence where applicable.",
+    "staticCheckSupported": false,
+    "manualReviewRequired": true,
+    "severityDefault": "Medium",
+    "keywords": ["section 508", "baseline", "wcag"],
+    "remediationGuidance": "Use ICT Testing Baseline procedures and manual validation to confirm Section 508 conformance.",
+    "references": ["https://www.section508.gov/test/", "https://ictbaseline.access-board.gov/"]
+  },
+  {
+    "ruleId": "508-LABELS-NAMES",
+    "standard": "Section 508 ICT Testing Baseline",
+    "successCriterion": "4.1.2",
+    "level": "Baseline",
+    "title": "Controls must expose name, role, and value",
+    "description": "Interactive controls need programmatically determinable names, roles, and values.",
+    "appliesTo": ["button", "input", "select", "textarea", "iframe", "aria"],
+    "testMethod": "Map static name/role/value findings to Section 508 baseline review.",
+    "staticCheckSupported": true,
+    "manualReviewRequired": true,
+    "severityDefault": "High",
+    "keywords": ["name", "role", "value", "label", "508"],
+    "remediationGuidance": "Provide native semantic elements and accessible names; verify with assistive technology.",
+    "references": ["https://ictbaseline.access-board.gov/"]
+  },
+  {
+    "ruleId": "508-KEYBOARD-MANUAL",
+    "standard": "Section 508 ICT Testing Baseline",
+    "successCriterion": "2.1.1",
+    "level": "Baseline",
+    "title": "Keyboard operation requires manual validation",
+    "description": "Static scanning can flag risk indicators, but cannot prove all functionality is keyboard operable.",
+    "appliesTo": ["interactive controls", "custom widgets"],
+    "testMethod": "Manual keyboard testing is required for workflows and custom controls.",
+    "staticCheckSupported": false,
+    "manualReviewRequired": true,
+    "severityDefault": "High",
+    "keywords": ["keyboard", "focus", "manual", "508"],
+    "remediationGuidance": "Validate all functionality with keyboard only, including focus order, visible focus, traps, and custom widgets.",
+    "references": ["https://ictbaseline.access-board.gov/"]
+  }
+]
