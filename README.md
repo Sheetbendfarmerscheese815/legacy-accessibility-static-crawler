@@ -4,6 +4,8 @@ Production-oriented .NET 8 / C# static accessibility assessment crawler for mode
 
 The core system works without LLMs, OpenAI, Azure OpenAI, Foundry, or any cloud AI service. Optional future LLM support is represented only by a disabled `ILlmReviewService` interface.
 
+For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md).
+
 ## What It Does
 
 - Crawls authorized websites with Selenium.
