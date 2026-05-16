@@ -6,7 +6,10 @@ $ErrorActionPreference = "Stop"
 $packages = @(
   "legacy-a11y-crawler-win-x64",
   "legacy-a11y-crawler-linux-x64",
-  "legacy-a11y-crawler-osx-arm64"
+  "legacy-a11y-crawler-osx-arm64",
+  "legacy-a11y-api-win-x64",
+  "legacy-a11y-api-linux-x64",
+  "legacy-a11y-api-osx-arm64"
 )
 
 foreach ($package in $packages) {

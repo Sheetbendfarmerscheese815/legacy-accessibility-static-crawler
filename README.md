@@ -4,7 +4,7 @@ Production-oriented .NET 8 / C# static accessibility assessment crawler for mode
 
 The core system works without LLMs, OpenAI, Azure OpenAI, Foundry, or any cloud AI service. Optional future LLM support is represented only by a disabled `ILlmReviewService` interface.
 
-For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md).
+For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md).
 
 ## What It Does
 
@@ -186,12 +186,14 @@ Manual findings can be imported from CSV using the sample shape in `samples/samp
 
 ## Downloadable Executable / Portable Release
 
-Initial distribution is ZIP-based:
+Initial distribution is ZIP-based. An MSI installer is possible later, but portable ZIPs are simpler to approve and run on test workstations.
 
 1. Download the ZIP for your platform from GitHub Releases.
 2. Extract the folder on an approved test workstation.
 3. Review `appsettings.example.json`.
 4. Run the executable.
+
+Users do not need the .NET SDK when using a self-contained release ZIP. They still need Chrome or Edge installed. WebDriver binaries are included through Selenium driver packages where supported, but browser versions and driver versions must remain compatible.
 
 Windows example:
 
@@ -222,6 +224,8 @@ CLI self-contained publish examples:
 Release ZIPs include executable, `appsettings.example.json`, README, docs, samples, LICENSE, VERSION.txt, and CHANGELOG.md.
 
 Release ZIPs do not include reports, screenshots, raw HTML captures, `.env`, credentials, cookies, or browser profile data.
+
+For a detailed dependency and packaging matrix, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md).
 
 ## Sensitive Data
 
