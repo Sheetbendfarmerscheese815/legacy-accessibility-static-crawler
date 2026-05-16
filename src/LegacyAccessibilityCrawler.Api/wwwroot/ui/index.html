@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accessibility Static Crawler</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --ink: #182235;
+      --muted: #5b6678;
+      --line: #d7deea;
+      --accent: #1662c4;
+      --accent-ink: #ffffff;
+      --warn: #8a4b08;
+      --warn-bg: #fff6df;
+      --ok: #176b3a;
+      --bad: #a31d1d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      background: #172033;
+      color: white;
+      padding: 22px clamp(18px, 4vw, 44px);
+    }
+    header h1 {
+      margin: 0 0 4px;
+      font-size: clamp(24px, 3vw, 34px);
+      letter-spacing: 0;
+    }
+    header p {
+      max-width: 980px;
+      margin: 0;
+      color: #d7deea;
+    }
+    main {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 22px auto 48px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+      gap: 18px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      min-width: 0;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-block: 12px;
+    }
+    label {
+      font-weight: 650;
+    }
+    input, select {
+      min-height: 42px;
+      width: 100%;
+      border: 1px solid #b9c4d5;
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: white;
+      font: inherit;
+    }
+    input[type="checkbox"] {
+      width: 18px;
+      min-height: 18px;
+      accent-color: var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .check-row {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      align-items: start;
+      margin-block: 10px;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .notice {
+      background: var(--warn-bg);
+      color: var(--warn);
+      border-left: 4px solid var(--warn);
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button, .button-link {
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      min-height: 42px;
+      padding: 9px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    button.secondary, .button-link.secondary {
+      background: #e8edf5;
+      color: #263349;
+    }
+    button:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 14px;
+      background: #f9fbfe;
+      min-height: 48px;
+      white-space: pre-wrap;
+    }
+    .status.ok { border-color: #98d4af; color: var(--ok); }
+    .status.bad { border-color: #e7a4a4; color: var(--bad); }
+    .report-list {
+      display: grid;
+      gap: 12px;
+    }
+    .report-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcff;
+    }
+    .report-item h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      word-break: break-word;
+    }
+    .report-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .report-links a {
+      color: var(--accent);
+      font-weight: 650;
+    }
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Accessibility Static Crawler</h1>
+    <p>Start an authorized crawl, collect deterministic accessibility evidence, and open generated reports. This assistant does not certify ADA, WCAG, or Section 508 compliance.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="crawl-title">
+      <h2 id="crawl-title">Start a Crawl</h2>
+      <div class="notice">Use this only on websites you are authorized to test. Authenticated and IE-mode systems may require manual login and manual accessibility validation.</div>
+
+      <form id="crawl-form">
+        <div class="field">
+          <label for="startUrl">Website URL</label>
+          <input id="startUrl" name="startUrl" type="url" required placeholder="https://example.gov">
+          <div class="hint">Start with a small crawl. You can increase page limits after confirming the output is correct.</div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="browserMode">Browser mode</label>
+            <select id="browserMode" name="browserMode">
+              <option value="Chrome">Chrome</option>
+              <option value="ModernEdge">Modern Edge</option>
+              <option value="EdgeIeModeAssisted">Edge IE-mode-assisted</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="standard">Rule pack</label>
+            <select id="standard" name="standard">
+              <option value="wcag21">WCAG 2.1 AA + Section 508</option>
+              <option value="wcag22">WCAG 2.1 AA + WCAG 2.2 + Section 508</option>
+              <option value="wcagOnly">WCAG 2.1 AA only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="maxPages">Max pages</label>
+            <input id="maxPages" name="maxPages" type="number" min="1" max="500" value="10">
+          </div>
+
+          <div class="field">
+            <label for="crawlDepth">Crawl depth</label>
+            <input id="crawlDepth" name="crawlDepth" type="number" min="0" max="10" value="1">
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="delaySeconds">Delay between pages</label>
+            <input id="delaySeconds" name="delaySeconds" type="number" min="0" max="30" value="1">
+          </div>
+
+          <div class="field">
+            <label for="outputDirectory">Output folder</label>
+            <input id="outputDirectory" name="outputDirectory" type="text" value="">
+            <div class="hint">Leave blank to create a timestamped folder under reports/ui-runs.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="rulesPdfPath">Optional PDF rules path</label>
+          <input id="rulesPdfPath" name="rulesPdfPath" type="text" placeholder="./samples/sample-rules.pdf">
+          <div class="hint">Use this only when you have a local PDF with agency or internal guidance.</div>
+        </div>
+
+        <div class="check-row">
+          <input id="headless" name="headless" type="checkbox" checked>
+          <label for="headless">Run headless after I submit the form</label>
+        </div>
+
+        <div class="check-row">
+          <input id="manualSession" name="manualSession" type="checkbox">
+          <label for="manualSession">Manual login/session required</label>
+        </div>
+
+        <div class="check-row">
+          <input id="sameDomainOnly" name="sameDomainOnly" type="checkbox" checked>
+          <label for="sameDomainOnly">Stay on the same domain</label>
+        </div>
+
+        <div class="check-row">
+          <input id="captureScreenshots" name="captureScreenshots" type="checkbox" checked>
+          <label for="captureScreenshots">Capture screenshots</label>
+        </div>
+
+        <div class="check-row">
+          <input id="captureHtml" name="captureHtml" type="checkbox" checked>
+          <label for="captureHtml">Capture HTML evidence</label>
+        </div>
+
+        <div class="actions">
+          <button id="start-button" type="submit">Start Crawl</button>
+          <button class="secondary" type="button" id="refresh-button">Refresh Dashboard</button>
+          <a class="button-link secondary" href="/swagger">Open Swagger</a>
+        </div>
+
+        <div id="status" class="status" role="status">Ready.</div>
+      </form>
+    </section>
+
+    <section aria-labelledby="dashboard-title">
+      <h2 id="dashboard-title">Generated Reports</h2>
+      <p class="hint">Reports appear here after a crawl completes. The Azure DevOps CSV is the `ADO CSV` link.</p>
+      <div id="report-list" class="report-list"></div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#crawl-form");
+    const statusBox = document.querySelector("#status");
+    const startButton = document.querySelector("#start-button");
+    const reportList = document.querySelector("#report-list");
+    const refreshButton = document.querySelector("#refresh-button");
+    const manualSession = document.querySelector("#manualSession");
+    const headless = document.querySelector("#headless");
+    const browserMode = document.querySelector("#browserMode");
+
+    function timestampOutput() {
+      const stamp = new Date().toISOString().replaceAll(":", "").replaceAll(".", "-");
+      return `reports/ui-runs/${stamp}`;
+    }
+
+    function setStatus(message, kind = "") {
+      statusBox.className = `status ${kind}`;
+      statusBox.textContent = message;
+    }
+
+    function reportUrl(path) {
+      return `/api/report-file?path=${encodeURIComponent(path)}`;
+    }
+
+    function numberValue(id) {
+      return Number(document.querySelector(`#${id}`).value);
+    }
+
+    function payloadFromForm() {
+      const standard = document.querySelector("#standard").value;
+      const outputDirectory = document.querySelector("#outputDirectory").value.trim() || timestampOutput();
+      const pdfPath = document.querySelector("#rulesPdfPath").value.trim();
+
+      return {
+        browserMode: browserMode.value,
+        startUrl: document.querySelector("#startUrl").value.trim(),
+        maxPages: numberValue("maxPages"),
+        crawlDepth: numberValue("crawlDepth"),
+        delaySeconds: numberValue("delaySeconds"),
+        sameDomainOnly: document.querySelector("#sameDomainOnly").checked,
+        respectRobotsTxt: true,
+        outputDirectory,
+        captureScreenshots: document.querySelector("#captureScreenshots").checked,
+        captureHtml: document.querySelector("#captureHtml").checked,
+        enableKeyboardChecks: true,
+        enableWcag22EnhancedRules: standard === "wcag22",
+        enableSection508Rules: standard !== "wcagOnly",
+        enablePdfRuleOverlay: Boolean(pdfPath),
+        rulesPdfPath: pdfPath || null,
+        redactQueryStrings: true,
+        manualSession: manualSession.checked,
+        headless: headless.checked && !manualSession.checked && browserMode.value !== "EdgeIeModeAssisted",
+        allowedDomains: []
+      };
+    }
+
+    async function pollJob(jobId) {
+      for (;;) {
+        const response = await fetch(`/api/jobs/${jobId}`);
+        if (!response.ok) {
+          throw new Error(`Unable to read job ${jobId}.`);
+        }
+
+        const job = await response.json();
+        if (job.status === "Completed") {
+          setStatus(`Crawl completed.\nJob: ${job.id}\nDashboard refreshed.`, "ok");
+          await loadReports();
+          return;
+        }
+
+        if (job.status === "Failed") {
+          setStatus(`Crawl failed.\n${job.error || "No error details were returned."}`, "bad");
+          return;
+        }
+
+        setStatus(`Crawl running...\nJob: ${job.id}\nStarted: ${job.createdAtUtc}`);
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      }
+    }
+
+    async function startCrawl(event) {
+      event.preventDefault();
+      startButton.disabled = true;
+      const payload = payloadFromForm();
+
+      if (!payload.startUrl) {
+        setStatus("Enter a website URL before starting.", "bad");
+        startButton.disabled = false;
+        return;
+      }
+
+      setStatus("Submitting crawl request...");
+
+      try {
+        const response = await fetch("/api/crawl/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || `HTTP ${response.status}`);
+        }
+
+        const job = await response.json();
+        setStatus(`Crawl accepted.\nJob: ${job.id}\nOutput folder: ${payload.outputDirectory}`);
+        await pollJob(job.id);
+      } catch (error) {
+        setStatus(`Unable to start crawl.\n${error.message}`, "bad");
+      } finally {
+        startButton.disabled = false;
+      }
+    }
+
+    async function loadReports() {
+      const response = await fetch("/api/reports");
+      if (!response.ok) {
+        reportList.textContent = "Unable to load reports.";
+        return;
+      }
+
+      const reports = await response.json();
+      if (reports.length === 0) {
+        reportList.innerHTML = `<div class="hint">No generated reports found yet.</div>`;
+        return;
+      }
+
+      reportList.innerHTML = reports.map(report => `
+        <article class="report-item">
+          <h3>${escapeHtml(report.name)}</h3>
+          <div class="hint">Updated ${new Date(report.lastModifiedUtc).toLocaleString()}</div>
+          <div class="report-links">
+            <a href="${reportUrl(report.htmlPath)}" target="_blank" rel="noreferrer">HTML report</a>
+            <a href="${reportUrl(report.adoCsvPath)}">ADO CSV</a>
+            <a href="${reportUrl(report.findingsCsvPath)}">Findings CSV</a>
+            <a href="${reportUrl(report.markdownPath)}">Markdown</a>
+            <a href="${reportUrl(report.jsonPath)}">JSON</a>
+            <a href="${reportUrl(report.executiveSummaryPath)}">Executive summary</a>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function syncManualOptions() {
+      const manual = manualSession.checked || browserMode.value === "EdgeIeModeAssisted";
+      if (manual) {
+        headless.checked = false;
+      }
+      headless.disabled = manual;
+    }
+
+    form.addEventListener("submit", startCrawl);
+    refreshButton.addEventListener("click", loadReports);
+    manualSession.addEventListener("change", syncManualOptions);
+    browserMode.addEventListener("change", syncManualOptions);
+    syncManualOptions();
+    loadReports();
+  </script>
+</body>
+</html>

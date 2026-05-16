@@ -4,7 +4,7 @@ Production-oriented .NET 8 / C# static accessibility assessment crawler for mode
 
 The core system works without LLMs, OpenAI, Azure OpenAI, Foundry, or any cloud AI service. Optional future LLM support is represented only by a disabled `ILlmReviewService` interface.
 
-For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md).
+For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md).
 
 ## What It Does
 
@@ -165,6 +165,16 @@ Endpoints:
 - `GET /api/rulepacks`
 - `GET /api/rulepacks/{id}`
 - `GET /api/version`
+
+## Browser UI
+
+Run the API and open:
+
+```text
+http://localhost:5000/ui/
+```
+
+The UI provides a crawl form with dropdowns and text boxes for common options, including browser mode, rule pack, max pages, crawl depth, optional PDF rules path, manual login mode, and headless execution. A dashboard lists generated reports and links directly to the HTML report, findings CSV, JSON report, executive summary, and Azure DevOps `ado-items.csv`.
 
 ## IE Mode
 

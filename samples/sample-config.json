@@ -15,5 +15,6 @@
   "enableSection508Rules": true,
   "enablePdfRuleOverlay": true,
   "redactQueryStrings": true,
+  "headless": true,
   "allowedDomains": []
 }

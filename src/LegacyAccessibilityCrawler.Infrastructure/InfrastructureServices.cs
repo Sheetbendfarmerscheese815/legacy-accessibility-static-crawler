@@ -92,10 +92,34 @@ public sealed class SeleniumCrawlerService : ICrawlerService
     {
         return options.BrowserMode switch
         {
-            BrowserMode.Chrome => new ChromeDriver(new ChromeOptions { AcceptInsecureCertificates = true }),
+            BrowserMode.Chrome => new ChromeDriver(CreateChromeOptions(options)),
             BrowserMode.EdgeIeModeAssisted => CreateIeModeAssistedEdgeDriver(),
-            _ => new EdgeDriver(new EdgeOptions { AcceptInsecureCertificates = true })
+            _ => new EdgeDriver(CreateEdgeOptions(options))
         };
+    }
+
+    private static ChromeOptions CreateChromeOptions(CrawlerOptions options)
+    {
+        var chromeOptions = new ChromeOptions { AcceptInsecureCertificates = true };
+        if (options.Headless && !options.ManualSession)
+        {
+            chromeOptions.AddArgument("--headless=new");
+            chromeOptions.AddArgument("--window-size=1440,1200");
+        }
+
+        return chromeOptions;
+    }
+
+    private static EdgeOptions CreateEdgeOptions(CrawlerOptions options)
+    {
+        var edgeOptions = new EdgeOptions { AcceptInsecureCertificates = true };
+        if (options.Headless && !options.ManualSession)
+        {
+            edgeOptions.AddArgument("--headless=new");
+            edgeOptions.AddArgument("--window-size=1440,1200");
+        }
+
+        return edgeOptions;
     }
 
     private static IWebDriver CreateIeModeAssistedEdgeDriver()

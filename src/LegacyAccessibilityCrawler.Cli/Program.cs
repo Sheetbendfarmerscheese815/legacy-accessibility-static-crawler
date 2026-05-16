@@ -90,6 +90,7 @@ static async Task<int> CrawlAsync(string[] args)
         CrawlDepth = parsed.GetInt("depth", 2),
         OutputDirectory = output,
         ManualSession = parsed.GetBool("manual-session"),
+        Headless = !parsed.GetBool("show-browser"),
         EnableWcag22EnhancedRules = string.Equals(parsed.Get("standard"), "wcag22", StringComparison.OrdinalIgnoreCase),
         EnableSection508Rules = !string.Equals(parsed.Get("section508"), "false", StringComparison.OrdinalIgnoreCase),
         RulesPdfPath = parsed.Get("rules-pdf")

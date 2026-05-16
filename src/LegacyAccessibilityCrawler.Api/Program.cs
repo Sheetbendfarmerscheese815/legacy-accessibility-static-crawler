@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json.Serialization;
 using LegacyAccessibilityCrawler.Core;
 using LegacyAccessibilityCrawler.Infrastructure;
 using LegacyAccessibilityCrawler.Reporting;
@@ -8,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, configuration) => configuration.ReadFrom.Configuration(context.Configuration).WriteTo.Console());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddSingleton<IRulePackService, RulePackService>();
 builder.Services.AddSingleton<IStaticCheckEngine, StaticCheckEngine>();
 builder.Services.AddSingleton<IRuleMatcherService, RuleMatcherService>();
@@ -21,6 +23,10 @@ builder.Services.AddSingleton<JobStore>();
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapGet("/", () => Results.Redirect("/ui/"));
 
 app.MapGet("/api/version", () => new
 {
@@ -94,6 +100,44 @@ app.MapGet("/api/reports/{id}", (string id) =>
     return report is null ? Results.NotFound() : Results.File(report, "text/html");
 });
 
+app.MapGet("/api/reports", () =>
+{
+    var reportsRoot = Path.GetFullPath("reports");
+    if (!Directory.Exists(reportsRoot))
+    {
+        return Results.Ok(Array.Empty<ReportListItem>());
+    }
+
+    var items = Directory.EnumerateFiles(reportsRoot, "report.html", SearchOption.AllDirectories)
+        .Select(path => ReportListItem.FromReportPath(reportsRoot, path))
+        .OrderByDescending(item => item.LastModifiedUtc)
+        .ToList();
+
+    return Results.Ok(items);
+});
+
+app.MapGet("/api/report-file", (string path) =>
+{
+    var reportsRoot = Path.GetFullPath("reports");
+    var requested = Path.GetFullPath(Path.Combine(reportsRoot, path));
+    if (!requested.StartsWith(reportsRoot, StringComparison.Ordinal) || !File.Exists(requested))
+    {
+        return Results.NotFound();
+    }
+
+    var contentType = Path.GetExtension(requested).ToLowerInvariant() switch
+    {
+        ".html" => "text/html",
+        ".md" => "text/markdown",
+        ".json" => "application/json",
+        ".csv" => "text/csv",
+        ".png" => "image/png",
+        _ => "application/octet-stream"
+    };
+
+    return Results.File(requested, contentType, Path.GetFileName(requested));
+});
+
 app.MapGet("/api/rulepacks", async (IRulePackService rules, CancellationToken cancellationToken) =>
     await rules.LoadRulesAsync(includeSection508: true, includeWcag22: true, cancellationToken: cancellationToken));
 
@@ -108,6 +152,36 @@ app.Run();
 public sealed record RulesExtractRequest(string RulesPdfPath, string OutputDirectory);
 public sealed record ManualFindingsImportRequest(string CsvPath);
 public sealed record JobStatus(string Id, string Type, string Status, DateTimeOffset CreatedAtUtc, object? Result = null, string? Error = null);
+public sealed record ReportListItem(
+    string Name,
+    string Directory,
+    DateTimeOffset LastModifiedUtc,
+    string HtmlPath,
+    string MarkdownPath,
+    string JsonPath,
+    string FindingsCsvPath,
+    string AdoCsvPath,
+    string ExecutiveSummaryPath)
+{
+    public static ReportListItem FromReportPath(string reportsRoot, string htmlPath)
+    {
+        var directory = Path.GetDirectoryName(htmlPath) ?? reportsRoot;
+        var relativeDirectory = Path.GetRelativePath(reportsRoot, directory);
+        static string Relative(string reportsRoot, string directory, string fileName) =>
+            Path.GetRelativePath(reportsRoot, Path.Combine(directory, fileName));
+
+        return new ReportListItem(
+            string.IsNullOrWhiteSpace(relativeDirectory) || relativeDirectory == "." ? "reports" : relativeDirectory,
+            relativeDirectory,
+            File.GetLastWriteTimeUtc(htmlPath),
+            Relative(reportsRoot, directory, "report.html"),
+            Relative(reportsRoot, directory, "report.md"),
+            Relative(reportsRoot, directory, "report.json"),
+            Relative(reportsRoot, directory, "findings.csv"),
+            Relative(reportsRoot, directory, "ado-items.csv"),
+            Relative(reportsRoot, directory, "executive-summary.md"));
+    }
+}
 
 public sealed class JobStore
 {

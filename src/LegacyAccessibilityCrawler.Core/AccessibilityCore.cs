@@ -54,6 +54,7 @@ public sealed record CrawlerOptions
     public bool EnablePdfRuleOverlay { get; init; } = true;
     public bool RedactQueryStrings { get; init; } = true;
     public bool ManualSession { get; init; }
+    public bool Headless { get; init; } = true;
     public IReadOnlyList<string> AllowedDomains { get; init; } = [];
 }
 

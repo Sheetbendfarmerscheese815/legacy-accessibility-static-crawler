@@ -36,6 +36,24 @@ DOTNET_ROLL_FORWARD=Major
 
 In examples below, commands include `DOTNET_ROLL_FORWARD=Major` for compatibility.
 
+## Easiest Option: Use the Browser UI
+
+Start the local API and UI:
+
+```bash
+DOTNET_ROLL_FORWARD=Major dotnet run --project src/LegacyAccessibilityCrawler.Api
+```
+
+Open:
+
+```text
+http://localhost:5000/ui/
+```
+
+The UI lets you enter the website URL, choose browser mode from a dropdown, set page limits, choose rule packs, and start a headless crawl. It also has a dashboard that links to generated reports and the Azure DevOps CSV.
+
+For full UI instructions, see `docs/ui-mode.md`.
+
 ## Quick Health Check
 
 Run these commands to confirm the tool is ready:
