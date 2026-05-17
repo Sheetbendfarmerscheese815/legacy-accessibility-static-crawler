@@ -12,6 +12,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\LegacyAccessibilityCrawler.Api\LegacyAccessibilityCrawler.Api.csproj" />
     <ProjectReference Include="..\LegacyAccessibilityCrawler.Core\LegacyAccessibilityCrawler.Core.csproj" />
     <ProjectReference Include="..\LegacyAccessibilityCrawler.Infrastructure\LegacyAccessibilityCrawler.Infrastructure.csproj" />
     <ProjectReference Include="..\LegacyAccessibilityCrawler.Reporting\LegacyAccessibilityCrawler.Reporting.csproj" />

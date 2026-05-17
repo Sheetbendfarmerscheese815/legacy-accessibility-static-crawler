@@ -58,6 +58,103 @@ public sealed record CrawlerOptions
     public IReadOnlyList<string> AllowedDomains { get; init; } = [];
 }
 
+public sealed record OutputPathOptions
+{
+    public string BaseOutputDirectory { get; init; } = "reports";
+}
+
+public sealed record CrawlSecurityOptions
+{
+    public IReadOnlyList<string> AllowedDomains { get; init; } = [];
+}
+
+public static class OutputPathSanitizer
+{
+    public static string ResolveOutputDirectory(string? requestedPath, string baseOutputDirectory)
+    {
+        var baseDirectory = Path.GetFullPath(string.IsNullOrWhiteSpace(baseOutputDirectory) ? "reports" : baseOutputDirectory);
+        var relativeOrDefault = string.IsNullOrWhiteSpace(requestedPath) ? "latest" : requestedPath;
+
+        if (relativeOrDefault.Contains('\0') || relativeOrDefault.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Contains(".."))
+        {
+            throw new ArgumentException("Output paths cannot contain traversal segments.", nameof(requestedPath));
+        }
+
+        if (IsUncPath(relativeOrDefault))
+        {
+            throw new ArgumentException("UNC/network output paths are not allowed.", nameof(requestedPath));
+        }
+
+        var resolved = Path.GetFullPath(relativeOrDefault);
+        if (!Path.IsPathFullyQualified(relativeOrDefault) && !IsInsideDirectory(resolved, baseDirectory))
+        {
+            resolved = Path.GetFullPath(Path.Combine(baseDirectory, relativeOrDefault));
+        }
+
+        if (!IsInsideDirectory(resolved, baseDirectory))
+        {
+            throw new ArgumentException($"Output path must stay inside '{baseDirectory}'.", nameof(requestedPath));
+        }
+
+        return resolved;
+    }
+
+    private static bool IsUncPath(string path) => path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal);
+
+    private static bool IsInsideDirectory(string candidate, string baseDirectory)
+    {
+        var normalizedBase = Path.TrimEndingDirectorySeparator(Path.GetFullPath(baseDirectory)) + Path.DirectorySeparatorChar;
+        var normalizedCandidate = Path.TrimEndingDirectorySeparator(Path.GetFullPath(candidate)) + Path.DirectorySeparatorChar;
+        return normalizedCandidate.StartsWith(normalizedBase, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+    }
+}
+
+public static class CrawlRequestValidator
+{
+    public static Uri ValidateStartUrl(string? startUrl, IEnumerable<string> allowedDomains)
+    {
+        if (!Uri.TryCreate(startUrl, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+        {
+            throw new ArgumentException("StartUrl must be an absolute http or https URL.", nameof(startUrl));
+        }
+
+        var domains = allowedDomains.Where(d => !string.IsNullOrWhiteSpace(d)).Select(d => d.Trim()).ToArray();
+        if (domains.Length == 0)
+        {
+            throw new ArgumentException("At least one allowed domain must be configured before crawling.");
+        }
+
+        if (!domains.Any(domain => HostMatches(uri.Host, domain)))
+        {
+            throw new ArgumentException($"The URL host '{uri.Host}' is not in the configured allowed domain list.");
+        }
+
+        return uri;
+    }
+
+    public static CrawlerOptions ValidateAndNormalize(CrawlerOptions options, IEnumerable<string> configuredAllowedDomains, string baseOutputDirectory)
+    {
+        ValidateStartUrl(options.StartUrl, configuredAllowedDomains);
+        var output = OutputPathSanitizer.ResolveOutputDirectory(options.OutputDirectory, baseOutputDirectory);
+        return options with
+        {
+            OutputDirectory = output,
+            AllowedDomains = configuredAllowedDomains.Where(d => !string.IsNullOrWhiteSpace(d)).Select(d => d.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+        };
+    }
+
+    private static bool HostMatches(string host, string pattern)
+    {
+        if (pattern.StartsWith("*.", StringComparison.Ordinal))
+        {
+            var suffix = pattern[1..];
+            return host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && host.Length > suffix.Length;
+        }
+
+        return string.Equals(host, pattern, StringComparison.OrdinalIgnoreCase);
+    }
+}
+
 public sealed record AccessibilityRule
 {
     public string RuleId { get; init; } = "";

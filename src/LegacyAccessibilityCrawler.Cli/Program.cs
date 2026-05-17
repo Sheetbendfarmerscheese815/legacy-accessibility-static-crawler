@@ -54,7 +54,7 @@ static async Task<int> ExtractRulesAsync(string[] args)
 {
     var options = Args.Parse(args);
     var pdf = options.Get("rules-pdf");
-    var output = options.Get("output", "reports/rules");
+    var output = OutputPathSanitizer.ResolveOutputDirectory(options.Get("output", "reports/rules"), "reports");
     if (string.IsNullOrWhiteSpace(pdf))
     {
         return PrintHelp("--rules-pdf is required.");
@@ -80,8 +80,14 @@ static async Task<int> CrawlAsync(string[] args)
         return PrintHelp("--url is required.");
     }
 
-    var output = parsed.Get("output", "reports/latest");
+    var output = OutputPathSanitizer.ResolveOutputDirectory(parsed.Get("output", "reports/latest"), "reports");
     var browser = ParseBrowserMode(parsed.Get("browser", "modern-edge"));
+    var allowedDomains = parsed.GetMany("allowed-domain");
+    if (allowedDomains.Count == 0 && Uri.TryCreate(url, UriKind.Absolute, out var startUri))
+    {
+        allowedDomains = [startUri.Host];
+    }
+
     var options = new CrawlerOptions
     {
         StartUrl = url,
@@ -93,8 +99,10 @@ static async Task<int> CrawlAsync(string[] args)
         Headless = !parsed.GetBool("show-browser"),
         EnableWcag22EnhancedRules = string.Equals(parsed.Get("standard"), "wcag22", StringComparison.OrdinalIgnoreCase),
         EnableSection508Rules = !string.Equals(parsed.Get("section508"), "false", StringComparison.OrdinalIgnoreCase),
-        RulesPdfPath = parsed.Get("rules-pdf")
+        RulesPdfPath = parsed.Get("rules-pdf"),
+        AllowedDomains = allowedDomains
     };
+    options = CrawlRequestValidator.ValidateAndNormalize(options, options.AllowedDomains, "reports");
 
     var pdfRules = new List<AccessibilityRule>();
     if (!string.IsNullOrWhiteSpace(options.RulesPdfPath))
@@ -135,7 +143,7 @@ static async Task<int> ReportAsync(string[] args)
 {
     var parsed = Args.Parse(args);
     var scanResults = parsed.Get("scan-results");
-    var output = parsed.Get("output", "reports/final");
+    var output = OutputPathSanitizer.ResolveOutputDirectory(parsed.Get("output", "reports/final"), "reports");
     if (string.IsNullOrWhiteSpace(scanResults) || !File.Exists(scanResults))
     {
         return PrintHelp("--scan-results is required and must exist.");
@@ -187,6 +195,7 @@ internal sealed class Args
     }
 
     public string Get(string key, string defaultValue = "") => _values.TryGetValue(key, out var value) ? value : defaultValue;
+    public IReadOnlyList<string> GetMany(string key) => Get(key).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     public int GetInt(string key, int defaultValue) => int.TryParse(Get(key), out var value) ? value : defaultValue;
     public bool GetBool(string key) => bool.TryParse(Get(key), out var value) && value;
 }

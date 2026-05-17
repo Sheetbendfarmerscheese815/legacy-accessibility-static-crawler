@@ -68,6 +68,16 @@ Users still need the real browser installed:
 - Microsoft Edge for `modern-edge`.
 - Microsoft Edge with IE mode configured by the organization for `edge-ie-mode-assisted`.
 
+## Browser Driver Compatibility Matrix
+
+| Browser Mode | Browser Required | Driver Package Pin | Compatibility Note |
+| --- | --- | --- | --- |
+| `chrome` | Google Chrome | `Selenium.WebDriver.ChromeDriver` `131.0.6778.20400` | Best with Chrome major version `131`. If enterprise Chrome is newer or older, IT may need to approve a matching ChromeDriver package. |
+| `modern-edge` | Microsoft Edge | `Selenium.WebDriver.MSEdgeDriver` `147.0.3912.98` | Best with Edge major version `147`. Match EdgeDriver major version to installed Edge major version. |
+| `edge-ie-mode-assisted` | Microsoft Edge with organization-managed IE mode | `Selenium.WebDriver.MSEdgeDriver` `147.0.3912.98` | Driver compatibility is necessary but not sufficient. IE mode also depends on Edge policy/site-list configuration and still requires manual validation. |
+
+Driver binaries execute native code. For higher-assurance environments, keep the NuGet lockfile or package cache used for release builds, record package hashes during release approval, and let IT replace driver binaries only with approved versions that match the installed browsers.
+
 ## Can We Bundle Browser Drivers?
 
 Yes, browser driver binaries can be included in the publish output via NuGet packages, and the current project is set up that way.

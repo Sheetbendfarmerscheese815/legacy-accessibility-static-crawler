@@ -149,6 +149,34 @@ public sealed class CoreTests
         Assert.Equal("Trap", imported[0].IssueSummary);
     }
 
+    [Fact]
+    public void OutputPathSanitizer_RejectsTraversalOutsideBaseDirectory()
+    {
+        var baseDirectory = Path.Combine(Path.GetTempPath(), "legacy-a11y-output-base");
+
+        Assert.Throws<ArgumentException>(() => OutputPathSanitizer.ResolveOutputDirectory("../outside", baseDirectory));
+        Assert.Throws<ArgumentException>(() => OutputPathSanitizer.ResolveOutputDirectory(Path.GetTempPath(), baseDirectory));
+    }
+
+    [Fact]
+    public void CrawlRequestValidator_RequiresConfiguredAllowedDomain()
+    {
+        Assert.Throws<ArgumentException>(() => CrawlRequestValidator.ValidateStartUrl("https://example.gov", []));
+        Assert.Throws<ArgumentException>(() => CrawlRequestValidator.ValidateStartUrl("https://evil.test", ["example.gov"]));
+
+        var uri = CrawlRequestValidator.ValidateStartUrl("https://sub.example.gov/path", ["*.example.gov"]);
+
+        Assert.Equal("sub.example.gov", uri.Host);
+    }
+
+    [Fact]
+    public void ApiKeySecurity_RequiresExactConfiguredKey()
+    {
+        Assert.True(ApiKeySecurity.IsValid("local-key", ["local-key"]));
+        Assert.False(ApiKeySecurity.IsValid("wrong", ["local-key"]));
+        Assert.False(ApiKeySecurity.IsValid("", ["local-key"]));
+    }
+
     [Fact(Skip = "Requires a real PDF fixture and PdfPig restore; sample placeholder documents the supported workflow.")]
     public async Task PdfExtraction_NormalizesRules()
     {

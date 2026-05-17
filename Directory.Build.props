@@ -10,7 +10,7 @@
     <InformationalVersion>$(Version)+$(SourceRevisionId)</InformationalVersion>
     <Company>legacy-accessibility-static-crawler</Company>
     <Product>legacy-accessibility-static-crawler</Product>
-    <RepositoryUrl>https://github.com/your-org/legacy-accessibility-static-crawler</RepositoryUrl>
+    <RepositoryUrl>https://github.com/nprasann/legacy-accessibility-static-crawler</RepositoryUrl>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>

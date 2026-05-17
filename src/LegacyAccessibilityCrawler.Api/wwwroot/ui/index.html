@@ -190,6 +190,12 @@
 
       <form id="crawl-form">
         <div class="field">
+          <label for="apiKey">API key</label>
+          <input id="apiKey" name="apiKey" type="password" autocomplete="off" placeholder="change-me-local-dev-key">
+          <div class="hint">Required for API calls. For local testing, use the key configured in appsettings.json.</div>
+        </div>
+
+        <div class="field">
           <label for="startUrl">Website URL</label>
           <input id="startUrl" name="startUrl" type="url" required placeholder="https://example.gov">
           <div class="hint">Start with a small crawl. You can increase page limits after confirming the output is correct.</div>
@@ -308,8 +314,9 @@
       statusBox.textContent = message;
     }
 
-    function reportUrl(path) {
-      return `/api/report-file?path=${encodeURIComponent(path)}`;
+    function apiHeaders(extra = {}) {
+      const key = document.querySelector("#apiKey").value.trim();
+      return key ? { ...extra, "x-api-key": key } : extra;
     }
 
     function numberValue(id) {
@@ -346,7 +353,7 @@
 
     async function pollJob(jobId) {
       for (;;) {
-        const response = await fetch(`/api/jobs/${jobId}`);
+        const response = await fetch(`/api/jobs/${jobId}`, { headers: apiHeaders() });
         if (!response.ok) {
           throw new Error(`Unable to read job ${jobId}.`);
         }
@@ -384,7 +391,7 @@
       try {
         const response = await fetch("/api/crawl/start", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: apiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(payload)
         });
 
@@ -404,7 +411,7 @@
     }
 
     async function loadReports() {
-      const response = await fetch("/api/reports");
+      const response = await fetch("/api/reports", { headers: apiHeaders() });
       if (!response.ok) {
         reportList.textContent = "Unable to load reports.";
         return;
@@ -421,15 +428,36 @@
           <h3>${escapeHtml(report.name)}</h3>
           <div class="hint">Updated ${new Date(report.lastModifiedUtc).toLocaleString()}</div>
           <div class="report-links">
-            <a href="${reportUrl(report.htmlPath)}" target="_blank" rel="noreferrer">HTML report</a>
-            <a href="${reportUrl(report.adoCsvPath)}">ADO CSV</a>
-            <a href="${reportUrl(report.findingsCsvPath)}">Findings CSV</a>
-            <a href="${reportUrl(report.markdownPath)}">Markdown</a>
-            <a href="${reportUrl(report.jsonPath)}">JSON</a>
-            <a href="${reportUrl(report.executiveSummaryPath)}">Executive summary</a>
+            <a href="#" data-report-path="${escapeHtml(report.htmlPath)}" data-open="true">HTML report</a>
+            <a href="#" data-report-path="${escapeHtml(report.adoCsvPath)}">ADO CSV</a>
+            <a href="#" data-report-path="${escapeHtml(report.findingsCsvPath)}">Findings CSV</a>
+            <a href="#" data-report-path="${escapeHtml(report.markdownPath)}">Markdown</a>
+            <a href="#" data-report-path="${escapeHtml(report.jsonPath)}">JSON</a>
+            <a href="#" data-report-path="${escapeHtml(report.executiveSummaryPath)}">Executive summary</a>
           </div>
         </article>
       `).join("");
+    }
+
+    async function openReport(path, openInNewTab) {
+      const response = await fetch(`/api/report-file?path=${encodeURIComponent(path)}`, { headers: apiHeaders() });
+      if (!response.ok) {
+        setStatus(`Unable to open report file.\nHTTP ${response.status}`, "bad");
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      if (openInNewTab) {
+        window.open(url, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = path.split("/").pop() || "report";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 
     function escapeHtml(value) {
@@ -451,6 +479,14 @@
 
     form.addEventListener("submit", startCrawl);
     refreshButton.addEventListener("click", loadReports);
+    reportList.addEventListener("click", event => {
+      const link = event.target.closest("[data-report-path]");
+      if (!link) {
+        return;
+      }
+      event.preventDefault();
+      openReport(link.dataset.reportPath, link.dataset.open === "true");
+    });
     manualSession.addEventListener("change", syncManualOptions);
     browserMode.addEventListener("change", syncManualOptions);
     syncManualOptions();

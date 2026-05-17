@@ -1,10 +1,12 @@
 # legacy-accessibility-static-crawler
 
+[![CI](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml/badge.svg)](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml)
+
 Production-oriented .NET 8 / C# static accessibility assessment crawler for modern and legacy websites, including assisted workflows for systems that may require Microsoft Edge IE mode.
 
 The core system works without LLMs, OpenAI, Azure OpenAI, Foundry, or any cloud AI service. Optional future LLM support is represented only by a disabled `ILlmReviewService` interface.
 
-For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md).
+For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md). For every configuration key, see [docs/configuration-reference.md](docs/configuration-reference.md).
 
 ## What It Does
 
@@ -166,6 +168,8 @@ Endpoints:
 - `GET /api/rulepacks/{id}`
 - `GET /api/version`
 
+API routes require an `x-api-key` header. For first-run local testing the sample key is `change-me-local-dev-key`; change it before exposing the API beyond your workstation. API crawls are also restricted to `Crawler:AllowedDomains` in `appsettings.json`, which should contain only systems you are authorized to test.
+
 ## Browser UI
 
 Run the API and open:
@@ -175,6 +179,8 @@ http://localhost:5000/ui/
 ```
 
 The UI provides a crawl form with dropdowns and text boxes for common options, including browser mode, rule pack, max pages, crawl depth, optional PDF rules path, manual login mode, and headless execution. A dashboard lists generated reports and links directly to the HTML report, findings CSV, JSON report, executive summary, and Azure DevOps `ado-items.csv`.
+
+The UI includes an API key field because the local API is protected. Configure authorized target domains and the API key in `appsettings.json` before starting a crawl.
 
 ## IE Mode
 
