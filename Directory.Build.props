@@ -10,7 +10,11 @@
     <InformationalVersion>$(Version)+$(SourceRevisionId)</InformationalVersion>
     <Company>legacy-accessibility-static-crawler</Company>
     <Product>legacy-accessibility-static-crawler</Product>
+    <Authors>nprasann</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/nprasann/legacy-accessibility-static-crawler</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nprasann/legacy-accessibility-static-crawler</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>

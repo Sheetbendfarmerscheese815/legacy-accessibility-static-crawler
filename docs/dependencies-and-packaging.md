@@ -216,7 +216,13 @@ Publish CLI packages:
 
 ```bash
 ./scripts/publish-linux-x64.sh 1.0.0
-./scripts/publish-osx-arm64.sh 1.0.0
+./scripts/publish-macos-arm64.sh 1.0.0
+```
+
+Publish all CLI release packages and checksums:
+
+```powershell
+pwsh ./scripts/publish-all.ps1 -Version 1.0.0
 ```
 
 Publish API/UI packages:
@@ -237,6 +243,8 @@ Create ZIP packages:
 ```powershell
 ./scripts/create-release-package.ps1 -Version 1.0.0
 ```
+
+The newer release scripts write final downloadable archives to `artifacts/releases` using the public artifact naming convention documented in [RELEASE.md](RELEASE.md).
 
 ## GitHub Releases
 

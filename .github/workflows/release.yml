@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version to release, for example 1.0.0"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -24,67 +30,44 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "BUILD_DATE_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
 
       - name: Restore
         run: dotnet restore legacy-accessibility-static-crawler.sln
 
       - name: Build
-        run: dotnet build legacy-accessibility-static-crawler.sln -c Release --no-restore /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} /p:AssemblyMetadata=BuildDateUtc=${{ env.BUILD_DATE_UTC }}
+        run: dotnet build legacy-accessibility-static-crawler.sln -c Release --no-restore /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} /p:BuildDateUtc=${{ env.BUILD_DATE_UTC }}
 
       - name: Test
         run: dotnet test legacy-accessibility-static-crawler.sln -c Release --no-build
 
-      - name: Publish CLI win-x64
-        shell: bash
-        run: |
-          dotnet publish src/LegacyAccessibilityCrawler.Cli/LegacyAccessibilityCrawler.Cli.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:EnableCompressionInSingleFile=true /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} -o artifacts/legacy-a11y-crawler-win-x64
-          cp -f src/LegacyAccessibilityCrawler.Cli/bin/Release/net8.0/win-x64/chromedriver.exe artifacts/legacy-a11y-crawler-win-x64/ 2>/dev/null || true
-          cp -f src/LegacyAccessibilityCrawler.Cli/bin/Release/net8.0/win-x64/msedgedriver.exe artifacts/legacy-a11y-crawler-win-x64/ 2>/dev/null || true
-
-      - name: Publish CLI linux-x64
-        shell: bash
-        run: |
-          dotnet publish src/LegacyAccessibilityCrawler.Cli/LegacyAccessibilityCrawler.Cli.csproj -c Release -r linux-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:EnableCompressionInSingleFile=true /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} -o artifacts/legacy-a11y-crawler-linux-x64
-          cp -f src/LegacyAccessibilityCrawler.Cli/bin/Release/net8.0/linux-x64/chromedriver artifacts/legacy-a11y-crawler-linux-x64/ 2>/dev/null || true
-          cp -f src/LegacyAccessibilityCrawler.Cli/bin/Release/net8.0/linux-x64/msedgedriver artifacts/legacy-a11y-crawler-linux-x64/ 2>/dev/null || true
-
-      - name: Publish CLI osx-arm64
-        shell: bash
-        run: |
-          dotnet publish src/LegacyAccessibilityCrawler.Cli/LegacyAccessibilityCrawler.Cli.csproj -c Release -r osx-arm64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:EnableCompressionInSingleFile=true /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} -o artifacts/legacy-a11y-crawler-osx-arm64
-          cp -f src/LegacyAccessibilityCrawler.Cli/bin/Release/net8.0/osx-arm64/chromedriver artifacts/legacy-a11y-crawler-osx-arm64/ 2>/dev/null || true
-          cp -f src/LegacyAccessibilityCrawler.Cli/bin/Release/net8.0/osx-arm64/msedgedriver artifacts/legacy-a11y-crawler-osx-arm64/ 2>/dev/null || true
-
-      - name: Publish API win-x64
-        shell: bash
-        run: |
-          dotnet publish src/LegacyAccessibilityCrawler.Api/LegacyAccessibilityCrawler.Api.csproj -c Release -r win-x64 --self-contained true /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} -o artifacts/legacy-a11y-api-win-x64
-          cp -f src/LegacyAccessibilityCrawler.Api/bin/Release/net8.0/win-x64/chromedriver.exe artifacts/legacy-a11y-api-win-x64/ 2>/dev/null || true
-          cp -f src/LegacyAccessibilityCrawler.Api/bin/Release/net8.0/win-x64/msedgedriver.exe artifacts/legacy-a11y-api-win-x64/ 2>/dev/null || true
-
-      - name: Publish API linux-x64
-        shell: bash
-        run: |
-          dotnet publish src/LegacyAccessibilityCrawler.Api/LegacyAccessibilityCrawler.Api.csproj -c Release -r linux-x64 --self-contained true /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} -o artifacts/legacy-a11y-api-linux-x64
-          cp -f src/LegacyAccessibilityCrawler.Api/bin/Release/net8.0/linux-x64/chromedriver artifacts/legacy-a11y-api-linux-x64/ 2>/dev/null || true
-          cp -f src/LegacyAccessibilityCrawler.Api/bin/Release/net8.0/linux-x64/msedgedriver artifacts/legacy-a11y-api-linux-x64/ 2>/dev/null || true
-
-      - name: Publish API osx-arm64
-        shell: bash
-        run: |
-          dotnet publish src/LegacyAccessibilityCrawler.Api/LegacyAccessibilityCrawler.Api.csproj -c Release -r osx-arm64 --self-contained true /p:Version=${{ steps.version.outputs.version }} /p:SourceRevisionId=${GITHUB_SHA::7} -o artifacts/legacy-a11y-api-osx-arm64
-          cp -f src/LegacyAccessibilityCrawler.Api/bin/Release/net8.0/osx-arm64/chromedriver artifacts/legacy-a11y-api-osx-arm64/ 2>/dev/null || true
-          cp -f src/LegacyAccessibilityCrawler.Api/bin/Release/net8.0/osx-arm64/msedgedriver artifacts/legacy-a11y-api-osx-arm64/ 2>/dev/null || true
-
-      - name: Package
+      - name: Publish release packages
         shell: pwsh
-        run: ./scripts/create-release-package.ps1 -Version ${{ steps.version.outputs.version }}
+        run: ./scripts/publish-all.ps1 -Version ${{ steps.version.outputs.version }}
 
-      - name: Release
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-accessibility-static-crawler-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/releases/*
+
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: legacy-accessibility-static-crawler ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
-            artifacts/*.zip
+            artifacts/releases/legacy-accessibility-static-crawler-${{ steps.version.outputs.version }}-win-x64.zip
+            artifacts/releases/legacy-accessibility-static-crawler-${{ steps.version.outputs.version }}-linux-x64.tar.gz
+            artifacts/releases/legacy-accessibility-static-crawler-${{ steps.version.outputs.version }}-osx-arm64.tar.gz
+            artifacts/releases/SHA256SUMS.txt

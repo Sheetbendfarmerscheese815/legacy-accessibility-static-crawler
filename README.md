@@ -1,12 +1,15 @@
 # legacy-accessibility-static-crawler
 
 [![CI](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml/badge.svg)](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml)
+[![Release](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/release.yml/badge.svg)](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/release.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/nprasann/legacy-accessibility-static-crawler?display_name=tag)](https://github.com/nprasann/legacy-accessibility-static-crawler/releases)
+[![License](https://img.shields.io/github/license/nprasann/legacy-accessibility-static-crawler)](LICENSE)
 
 Production-oriented .NET 8 / C# static accessibility assessment crawler for modern and legacy websites, including assisted workflows for systems that may require Microsoft Edge IE mode.
 
 The core system works without LLMs, OpenAI, Azure OpenAI, Foundry, or any cloud AI service. Optional future LLM support is represented only by a disabled `ILlmReviewService` interface.
 
-For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md). For every configuration key, see [docs/configuration-reference.md](docs/configuration-reference.md).
+For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md). For release engineering, see [docs/RELEASE.md](docs/RELEASE.md). For every configuration key, see [docs/configuration-reference.md](docs/configuration-reference.md).
 
 ## What It Does
 
@@ -76,6 +79,43 @@ Runtime and major package pins:
 | xUnit | `2.9.3` |
 
 Repository keywords: `accessibility`, `wcag`, `ada-title-ii`, `section-508`, `selenium`, `dotnet-8`, `csharp`, `ie-mode`, `static-analysis`, `azure-devops`.
+
+## Downloading Releases
+
+Download packaged releases from [GitHub Releases](https://github.com/nprasann/legacy-accessibility-static-crawler/releases).
+
+Windows:
+
+```powershell
+Expand-Archive .\legacy-accessibility-static-crawler-1.0.0-win-x64.zip -DestinationPath .\legacy-accessibility-static-crawler
+cd .\legacy-accessibility-static-crawler
+.\legacy-a11y-crawler.exe --help
+.\legacy-a11y-crawler.exe version
+```
+
+Linux:
+
+```bash
+mkdir legacy-accessibility-static-crawler
+tar -xzf legacy-accessibility-static-crawler-1.0.0-linux-x64.tar.gz -C legacy-accessibility-static-crawler
+cd legacy-accessibility-static-crawler
+chmod +x ./legacy-a11y-crawler
+./legacy-a11y-crawler --help
+./legacy-a11y-crawler version
+```
+
+macOS Apple Silicon:
+
+```bash
+mkdir legacy-accessibility-static-crawler
+tar -xzf legacy-accessibility-static-crawler-1.0.0-osx-arm64.tar.gz -C legacy-accessibility-static-crawler
+cd legacy-accessibility-static-crawler
+chmod +x ./legacy-a11y-crawler
+./legacy-a11y-crawler --help
+./legacy-a11y-crawler version
+```
+
+Also download `SHA256SUMS.txt` from the release and verify package hashes before distributing internally. This tool is an accessibility assessment assistant; it does not certify ADA, WCAG, or Section 508 compliance.
 
 ## Rule Sources
 
