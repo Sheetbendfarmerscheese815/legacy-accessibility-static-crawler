@@ -1,7 +1,6 @@
 # legacy-accessibility-static-crawler
 
 [![CI](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml/badge.svg)](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml)
-[![Release](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/release.yml/badge.svg)](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/nprasann/legacy-accessibility-static-crawler?display_name=tag)](https://github.com/nprasann/legacy-accessibility-static-crawler/releases)
 [![License](https://img.shields.io/github/license/nprasann/legacy-accessibility-static-crawler)](LICENSE)
 
