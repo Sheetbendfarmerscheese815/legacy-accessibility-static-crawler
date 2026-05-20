@@ -76,4 +76,7 @@ jobs:
             artifacts/releases/legacy-accessibility-static-crawler-${{ steps.version.outputs.version }}-win-x64.zip
             artifacts/releases/legacy-accessibility-static-crawler-${{ steps.version.outputs.version }}-linux-x64.tar.gz
             artifacts/releases/legacy-accessibility-static-crawler-${{ steps.version.outputs.version }}-osx-arm64.tar.gz
+            artifacts/releases/legacy-accessibility-static-crawler-api-${{ steps.version.outputs.version }}-win-x64.zip
+            artifacts/releases/legacy-accessibility-static-crawler-api-${{ steps.version.outputs.version }}-linux-x64.tar.gz
+            artifacts/releases/legacy-accessibility-static-crawler-api-${{ steps.version.outputs.version }}-osx-arm64.tar.gz
             artifacts/releases/SHA256SUMS.txt

@@ -1,6 +1,8 @@
 using LegacyAccessibilityCrawler.Core;
 using LegacyAccessibilityCrawler.Infrastructure;
 using LegacyAccessibilityCrawler.Reporting;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -171,6 +173,85 @@ public sealed class CoreTests
     }
 
     [Fact]
+    public async Task MicrosoftAxeHook_IsDisabledByDefaultAndEmitsPlaceholderWhenEnabled()
+    {
+        var service = new MicrosoftAxeAccessibilityEngine();
+        var page = new PageCapture
+        {
+            SanitizedUrl = "https://example.test",
+            BrowserMode = BrowserMode.Chrome,
+            Html = "<html><body><button></button></body></html>"
+        };
+
+        Assert.False(service.IsEnabled(new CrawlerOptions()));
+        Assert.True(service.IsEnabled(new CrawlerOptions { EnableMicrosoftAxe = true }));
+
+        var findings = await service.EvaluateAsync(page, []);
+
+        Assert.Single(findings);
+        Assert.Equal("AXE-HOOK-NOT-CONFIGURED", findings[0].RuleId);
+        Assert.True(findings[0].NeedsManualReview);
+    }
+
+    [Fact]
+    public async Task StaticStairScan_FollowsStrutsDoLinksAndPreservesCookies()
+    {
+        var port = GetFreeTcpPort();
+        using var listener = new HttpListener();
+        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+        listener.Start();
+        using var serverCts = new CancellationTokenSource();
+        var server = ServeStaticStairFixtureAsync(listener, serverCts.Token);
+        var output = Path.Combine(Path.GetTempPath(), "legacy-a11y-static-stair-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var pages = await new SeleniumCrawlerService().CrawlAsync(new CrawlerOptions
+            {
+                ScanMode = ScanMode.StaticStair,
+                StartUrl = $"http://127.0.0.1:{port}/home.do",
+                OutputDirectory = output,
+                MaxPages = 2,
+                CrawlDepth = 1,
+                CaptureHtml = false,
+                CaptureScreenshots = false,
+                DelaySeconds = 0,
+                AllowedDomains = ["127.0.0.1"]
+            });
+
+            Assert.Contains(pages, page => page.Url.EndsWith("/next.do", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(pages, page => page.Title == "Authenticated");
+        }
+        finally
+        {
+            serverCts.Cancel();
+            listener.Stop();
+            try
+            {
+                await server;
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or HttpListenerException or ObjectDisposedException)
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void BundledBrowserDriverResolver_FindsDriversBesideExecutableOrInDriverFolder()
+    {
+        var baseDirectory = Path.Combine(Path.GetTempPath(), "legacy-a11y-driver-tests", Guid.NewGuid().ToString("N"));
+        var driversDirectory = Path.Combine(baseDirectory, "drivers");
+        Directory.CreateDirectory(driversDirectory);
+        var driverName = OperatingSystem.IsWindows() ? "chromedriver.exe" : "chromedriver";
+        var driverPath = Path.Combine(driversDirectory, driverName);
+        File.WriteAllText(driverPath, "");
+
+        var resolved = BundledBrowserDriverResolver.ResolveDriverDirectory(BrowserMode.Chrome, baseDirectory);
+
+        Assert.Equal(Path.GetFullPath(driversDirectory), resolved);
+    }
+
+    [Fact]
     public async Task ManualFindingsImport_ReadsCsv()
     {
         var csvPath = Path.Combine(Path.GetTempPath(), $"manual-{Guid.NewGuid():N}.csv");
@@ -230,6 +311,58 @@ public sealed class CoreTests
         Assert.Throws<ArgumentException>(() => FileInputValidator.ResolveExistingFile("../rules.pdf", baseDirectory, ".pdf", 1024));
         Assert.Throws<ArgumentException>(() => FileInputValidator.ResolveExistingFile("rules.pdf", baseDirectory, ".csv", 1024));
         Assert.Throws<ArgumentException>(() => FileInputValidator.ResolveExistingFile("rules.pdf", baseDirectory, ".pdf", 2));
+    }
+
+    private static int GetFreeTcpPort()
+    {
+        using var socket = new TcpListener(IPAddress.Loopback, 0);
+        socket.Start();
+        return ((IPEndPoint)socket.LocalEndpoint).Port;
+    }
+
+    private static async Task ServeStaticStairFixtureAsync(HttpListener listener, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested && listener.IsListening)
+        {
+            HttpListenerContext context;
+            try
+            {
+                context = await listener.GetContextAsync().WaitAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or HttpListenerException or ObjectDisposedException)
+            {
+                return;
+            }
+
+            var path = context.Request.Url?.AbsolutePath ?? "/";
+            string html;
+            if (path.EndsWith("/home.do", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.Headers.Add("Set-Cookie", "SID=abc; Path=/");
+                html = """
+                    <html><head><title>Home</title></head><body>
+                    <a href="/next.do">Next</a>
+                    <form action="/submit.do" method="post"><button>Submit</button></form>
+                    </body></html>
+                    """;
+            }
+            else if (path.EndsWith("/next.do", StringComparison.OrdinalIgnoreCase) &&
+                (context.Request.Headers["Cookie"] ?? "").Contains("SID=abc", StringComparison.Ordinal))
+            {
+                html = "<html><head><title>Authenticated</title></head><body><h1>Authenticated</h1></body></html>";
+            }
+            else
+            {
+                context.Response.StatusCode = 404;
+                html = "<html><head><title>Missing</title></head><body>Missing</body></html>";
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(html);
+            context.Response.ContentType = "text/html; charset=utf-8";
+            context.Response.ContentLength64 = bytes.Length;
+            await context.Response.OutputStream.WriteAsync(bytes, cancellationToken);
+            context.Response.Close();
+        }
     }
 
     [Fact(Skip = "Requires a real PDF fixture and PdfPig restore; sample placeholder documents the supported workflow.")]

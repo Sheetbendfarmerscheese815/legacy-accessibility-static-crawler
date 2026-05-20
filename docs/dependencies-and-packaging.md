@@ -50,6 +50,11 @@ There are two useful package types.
 
 The API/UI package is usually friendlier for non-technical users because it provides a form and report dashboard.
 
+Release assets use these naming patterns:
+
+- `legacy-accessibility-static-crawler-{version}-{runtime}` for CLI packages.
+- `legacy-accessibility-static-crawler-api-{version}-{runtime}` for API/UI packages.
+
 ## Browser and Driver Dependencies
 
 The project references Selenium WebDriver packages:
@@ -58,7 +63,9 @@ The project references Selenium WebDriver packages:
 - `Selenium.WebDriver.ChromeDriver`
 - `Selenium.WebDriver.MSEdgeDriver`
 
-These packages can copy WebDriver executables into build or publish output for supported platforms.
+Release packaging scripts copy the pinned WebDriver executables from the restored NuGet package cache directly into the ZIP/tar.gz output folder. At runtime, the crawler first looks for `chromedriver`/`chromedriver.exe` or `msedgedriver`/`msedgedriver.exe` beside the executable, then in `drivers/` and `browser-drivers/`.
+
+If a required packaged driver is missing, the release script fails instead of creating a silently incomplete package.
 
 However, WebDriver binaries are not the same thing as the browser.
 
@@ -67,6 +74,8 @@ Users still need the real browser installed:
 - Google Chrome for `chrome`.
 - Microsoft Edge for `modern-edge`.
 - Microsoft Edge with IE mode configured by the organization for `edge-ie-mode-assisted`.
+
+The release packages are therefore portable application packages, not full browser installers. In locked-down enterprise environments, IT should approve the browser and driver versions together.
 
 ## Browser Driver Compatibility Matrix
 
@@ -80,7 +89,7 @@ Driver binaries execute native code. For higher-assurance environments, keep the
 
 ## Can We Bundle Browser Drivers?
 
-Yes, browser driver binaries can be included in the publish output via NuGet packages, and the current project is set up that way.
+Yes. Browser driver binaries are included in the publish output via pinned NuGet packages, and the current release scripts copy those binaries into the root of each distribution archive.
 
 Important details:
 
@@ -94,6 +103,8 @@ For enterprise distribution, the best practice is:
 1. Ship the portable ZIP with the driver binaries produced by publish.
 2. Document the browser versions tested with the release.
 3. Allow IT teams to replace or approve browser drivers if their browser version differs.
+
+When a dynamic browser cannot start, the default configuration falls back to `static-stair` crawling so legacy Struts-style routes can still be assessed without losing the run entirely. The fallback does not make JavaScript-rendered evidence available; it is a safer static mode.
 
 ## What Users Need To Download
 

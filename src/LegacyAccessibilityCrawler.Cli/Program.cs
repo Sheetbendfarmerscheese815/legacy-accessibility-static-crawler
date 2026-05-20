@@ -40,7 +40,7 @@ static int PrintHelp(string? error = null)
         Usage:
           legacy-a11y-crawler version
           legacy-a11y-crawler extract-rules --rules-pdf ./samples/sample-rules.pdf --output ./reports/rules
-          legacy-a11y-crawler crawl --url https://example.gov --browser modern-edge --max-pages 25 --depth 2 --standard wcag21aa --output ./reports/example
+          legacy-a11y-crawler crawl --url https://example.gov --scan-mode hybrid --browser modern-edge --max-pages 25 --depth 2 --standard wcag21aa --output ./reports/example
           legacy-a11y-crawler crawl --url https://legacy.example.gov --browser edge-ie-mode-assisted --manual-session true --max-pages 10 --depth 1 --rules-pdf ./samples/sample-rules.pdf --output ./reports/legacy-ie
           legacy-a11y-crawler report --scan-results ./reports/example/scan-results.json --output ./reports/example/final
 
@@ -91,6 +91,7 @@ static async Task<int> CrawlAsync(string[] args)
     var options = new CrawlerOptions
     {
         StartUrl = url,
+        ScanMode = ParseScanMode(parsed.Get("scan-mode", "dynamic")),
         BrowserMode = browser,
         MaxPages = parsed.GetInt("max-pages", 25),
         CrawlDepth = parsed.GetInt("depth", 2),
@@ -100,6 +101,8 @@ static async Task<int> CrawlAsync(string[] args)
         AcceptInsecureCertificates = parsed.GetBool("accept-insecure-certificates"),
         EnableWcag22EnhancedRules = string.Equals(parsed.Get("standard"), "wcag22", StringComparison.OrdinalIgnoreCase),
         EnableSection508Rules = !string.Equals(parsed.Get("section508"), "false", StringComparison.OrdinalIgnoreCase),
+        EnableMicrosoftAxe = parsed.GetBool("enable-microsoft-axe"),
+        FallbackToStaticStairWhenBrowserUnavailable = !parsed.GetBool("disable-browser-fallback"),
         RulesPdfPath = parsed.Get("rules-pdf"),
         AllowedDomains = allowedDomains
     };
@@ -118,7 +121,16 @@ static async Task<int> CrawlAsync(string[] args)
     var pages = await crawler.CrawlAsync(options);
     var engine = new StaticCheckEngine();
     var matcher = new RuleMatcherService();
-    var findings = matcher.EnrichFindings(pages.SelectMany(p => engine.Analyze(p, rules)), rules);
+    var findings = matcher.EnrichFindings(pages.SelectMany(p => engine.Analyze(p, rules)), rules).ToList();
+    var accessibilityEngines = new IAccessibilityEngine[] { new MicrosoftAxeAccessibilityEngine() };
+    foreach (var accessibilityEngine in accessibilityEngines.Where(e => e.IsEnabled(options)))
+    {
+        foreach (var page in pages)
+        {
+            findings.AddRange(await accessibilityEngine.EvaluateAsync(page, rules));
+        }
+    }
+
     var result = new ScanResult
     {
         Options = options,
@@ -163,6 +175,13 @@ static BrowserMode ParseBrowserMode(string value) => value.ToLowerInvariant() sw
     "chrome" => BrowserMode.Chrome,
     "edge-ie-mode-assisted" => BrowserMode.EdgeIeModeAssisted,
     _ => BrowserMode.ModernEdge
+};
+
+static ScanMode ParseScanMode(string value) => value.ToLowerInvariant() switch
+{
+    "static-stair" or "staticstair" or "static" => ScanMode.StaticStair,
+    "hybrid" => ScanMode.Hybrid,
+    _ => ScanMode.Dynamic
 };
 
 static string GetBuildConfiguration()
