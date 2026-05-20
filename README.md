@@ -61,7 +61,7 @@ flowchart LR
 
 ## Version Pins
 
-Project version: `1.0.0` in `Directory.Build.props` and `VERSION.txt`.
+Project version: `1.0.3` in `Directory.Build.props` and `VERSION.txt`.
 
 Runtime and major package pins:
 
@@ -90,7 +90,7 @@ Use `legacy-accessibility-static-crawler-{version}-{runtime}` for the CLI. Use `
 Windows:
 
 ```powershell
-Expand-Archive .\legacy-accessibility-static-crawler-1.0.0-win-x64.zip -DestinationPath .\legacy-accessibility-static-crawler
+Expand-Archive .\legacy-accessibility-static-crawler-1.0.3-win-x64.zip -DestinationPath .\legacy-accessibility-static-crawler
 cd .\legacy-accessibility-static-crawler
 .\legacy-a11y-crawler.exe --help
 .\legacy-a11y-crawler.exe version
@@ -100,7 +100,7 @@ Linux:
 
 ```bash
 mkdir legacy-accessibility-static-crawler
-tar -xzf legacy-accessibility-static-crawler-1.0.0-linux-x64.tar.gz -C legacy-accessibility-static-crawler
+tar -xzf legacy-accessibility-static-crawler-1.0.3-linux-x64.tar.gz -C legacy-accessibility-static-crawler
 cd legacy-accessibility-static-crawler
 chmod +x ./legacy-a11y-crawler
 ./legacy-a11y-crawler --help
@@ -111,7 +111,7 @@ macOS Apple Silicon:
 
 ```bash
 mkdir legacy-accessibility-static-crawler
-tar -xzf legacy-accessibility-static-crawler-1.0.0-osx-arm64.tar.gz -C legacy-accessibility-static-crawler
+tar -xzf legacy-accessibility-static-crawler-1.0.3-osx-arm64.tar.gz -C legacy-accessibility-static-crawler
 cd legacy-accessibility-static-crawler
 chmod +x ./legacy-a11y-crawler
 ./legacy-a11y-crawler --help
@@ -290,12 +290,12 @@ legacy-a11y-crawler.exe crawl ^
 CLI self-contained publish examples:
 
 ```powershell
-./scripts/publish-win-x64.ps1 -Version 1.0.0
+./scripts/publish-win-x64.ps1 -Version 1.0.3
 ```
 
 ```bash
-./scripts/publish-linux-x64.sh 1.0.0
-./scripts/publish-osx-arm64.sh 1.0.0
+./scripts/publish-linux-x64.sh 1.0.3
+./scripts/publish-osx-arm64.sh 1.0.3
 ```
 
 Release ZIPs include executable, `appsettings.example.json`, README, docs, samples, LICENSE, VERSION.txt, and CHANGELOG.md.
