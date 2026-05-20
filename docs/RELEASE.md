@@ -33,28 +33,28 @@ Use semantic versioning:
 From the repository root:
 
 ```powershell
-pwsh ./scripts/publish-all.ps1 -Version 1.0.0
+pwsh ./scripts/publish-all.ps1 -Version 1.0.3
 ```
 
 This creates:
 
-- `artifacts/releases/legacy-accessibility-static-crawler-1.0.0-win-x64.zip`
-- `artifacts/releases/legacy-accessibility-static-crawler-1.0.0-linux-x64.tar.gz`
-- `artifacts/releases/legacy-accessibility-static-crawler-1.0.0-osx-arm64.tar.gz`
-- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.0-win-x64.zip`
-- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.0-linux-x64.tar.gz`
-- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.0-osx-arm64.tar.gz`
+- `artifacts/releases/legacy-accessibility-static-crawler-1.0.3-win-x64.zip`
+- `artifacts/releases/legacy-accessibility-static-crawler-1.0.3-linux-x64.tar.gz`
+- `artifacts/releases/legacy-accessibility-static-crawler-1.0.3-osx-arm64.tar.gz`
+- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.3-win-x64.zip`
+- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.3-linux-x64.tar.gz`
+- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.3-osx-arm64.tar.gz`
 - `artifacts/releases/SHA256SUMS.txt`
 
 Individual platform scripts are also available:
 
 ```powershell
-pwsh ./scripts/publish-win-x64.ps1 -Version 1.0.0
+pwsh ./scripts/publish-win-x64.ps1 -Version 1.0.3
 ```
 
 ```bash
-./scripts/publish-linux-x64.sh 1.0.0
-./scripts/publish-macos-arm64.sh 1.0.0
+./scripts/publish-linux-x64.sh 1.0.3
+./scripts/publish-macos-arm64.sh 1.0.3
 ```
 
 Each script restores, builds, tests, publishes a self-contained CLI executable, packages README/LICENSE/docs/samples, and writes the release archive under `artifacts/releases`.
@@ -62,12 +62,12 @@ Each script restores, builds, tests, publishes a self-contained CLI executable, 
 API/UI package scripts are also available for the local browser-based workflow:
 
 ```powershell
-pwsh ./scripts/publish-api-win-x64.ps1 -Version 1.0.0
+pwsh ./scripts/publish-api-win-x64.ps1 -Version 1.0.3
 ```
 
 ```bash
-./scripts/publish-api-linux-x64.sh 1.0.0
-./scripts/publish-api-osx-arm64.sh 1.0.0
+./scripts/publish-api-linux-x64.sh 1.0.3
+./scripts/publish-api-osx-arm64.sh 1.0.3
 ```
 
 ## GitHub Release Workflow
@@ -75,11 +75,11 @@ pwsh ./scripts/publish-api-win-x64.ps1 -Version 1.0.0
 The release workflow runs when a version tag is pushed:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.3
+git push origin v1.0.3
 ```
 
-It can also be started manually from GitHub Actions with a version input such as `1.0.0`.
+It can also be started manually from GitHub Actions with a version input such as `1.0.3`.
 
 The workflow:
 
@@ -129,7 +129,7 @@ export DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/legacy-a11y-crawler
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\legacy-accessibility-static-crawler-1.0.0-win-x64.zip -Algorithm SHA256
+Get-FileHash .\legacy-accessibility-static-crawler-1.0.3-win-x64.zip -Algorithm SHA256
 Get-Content .\SHA256SUMS.txt
 ```
 
@@ -149,7 +149,7 @@ Confirm the computed hash matches the entry in `SHA256SUMS.txt`.
 To roll back a release:
 
 1. Mark the bad GitHub Release as pre-release or delete the release artifact if necessary.
-2. Publish a patch release with the fix, such as `v1.0.1`.
+2. Publish a patch release with the fix, such as `v1.0.4`.
 3. Document the reason in `CHANGELOG.md`.
 4. Ask testers to replace the extracted folder with the corrected release package.
 

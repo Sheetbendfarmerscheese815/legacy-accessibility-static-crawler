@@ -222,37 +222,37 @@ dotnet build legacy-accessibility-static-crawler.sln -c Release --no-restore
 Publish CLI packages:
 
 ```powershell
-./scripts/publish-win-x64.ps1 -Version 1.0.0
+./scripts/publish-win-x64.ps1 -Version 1.0.3
 ```
 
 ```bash
-./scripts/publish-linux-x64.sh 1.0.0
-./scripts/publish-macos-arm64.sh 1.0.0
+./scripts/publish-linux-x64.sh 1.0.3
+./scripts/publish-macos-arm64.sh 1.0.3
 ```
 
 Publish all CLI release packages and checksums:
 
 ```powershell
-pwsh ./scripts/publish-all.ps1 -Version 1.0.0
+pwsh ./scripts/publish-all.ps1 -Version 1.0.3
 ```
 
 Publish API/UI packages:
 
 ```bash
-./scripts/publish-api-linux-x64.sh 1.0.0
-./scripts/publish-api-osx-arm64.sh 1.0.0
+./scripts/publish-api-linux-x64.sh 1.0.3
+./scripts/publish-api-osx-arm64.sh 1.0.3
 ```
 
 Windows API/UI publishing is included in:
 
 ```powershell
-./scripts/publish-win-x64.ps1 -Version 1.0.0
+./scripts/publish-win-x64.ps1 -Version 1.0.3
 ```
 
 Create ZIP packages:
 
 ```powershell
-./scripts/create-release-package.ps1 -Version 1.0.0
+./scripts/create-release-package.ps1 -Version 1.0.3
 ```
 
 The newer release scripts write final downloadable archives to `artifacts/releases` using the public artifact naming convention documented in [RELEASE.md](RELEASE.md).
@@ -262,8 +262,8 @@ The newer release scripts write final downloadable archives to `artifacts/releas
 The GitHub Actions release workflow builds and uploads ZIP packages when a version tag is pushed:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.3
+git push origin v1.0.3
 ```
 
 The workflow:
@@ -300,15 +300,15 @@ Recommended future MSI approach:
 
 For non-technical users, publish:
 
-- `legacy-a11y-api-win-x64-1.0.0.zip`
-- `legacy-a11y-api-osx-arm64-1.0.0.zip`
-- `legacy-a11y-api-linux-x64-1.0.0.zip`
+- `legacy-a11y-api-win-x64-1.0.3.zip`
+- `legacy-a11y-api-osx-arm64-1.0.3.zip`
+- `legacy-a11y-api-linux-x64-1.0.3.zip`
 
 For technical users and automation, publish:
 
-- `legacy-a11y-crawler-win-x64-1.0.0.zip`
-- `legacy-a11y-crawler-osx-arm64-1.0.0.zip`
-- `legacy-a11y-crawler-linux-x64-1.0.0.zip`
+- `legacy-a11y-crawler-win-x64-1.0.3.zip`
+- `legacy-a11y-crawler-osx-arm64-1.0.3.zip`
+- `legacy-a11y-crawler-linux-x64-1.0.3.zip`
 
 ## Honest Limitations
 

@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on Keep a Changelog, and this project uses semantic versioning.
 
+## [1.0.3] - 2026-05-20
+
+### Changed
+- Bumped project release metadata to `1.0.3` for a fresh tagged GitHub Release.
+- Added release workflow guard to prevent manual release runs from reusing an existing tag.
+
 ## [1.0.0] - 2026-05-16
 
 ### Added

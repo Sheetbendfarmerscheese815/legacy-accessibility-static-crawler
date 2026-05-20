@@ -45,6 +45,15 @@ jobs:
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "BUILD_DATE_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
 
+      - name: Prevent manual release tag reuse
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Release tag ${{ steps.version.outputs.tag }} already exists. Use a new semantic version for a fresh GitHub Release timestamp." >&2
+            exit 1
+          fi
+
       - name: Restore
         run: dotnet restore legacy-accessibility-static-crawler.sln
 
