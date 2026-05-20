@@ -186,11 +186,50 @@ public sealed class CoreTests
         Assert.False(service.IsEnabled(new CrawlerOptions()));
         Assert.True(service.IsEnabled(new CrawlerOptions { EnableMicrosoftAxe = true }));
 
-        var findings = await service.EvaluateAsync(page, []);
+        var findings = await service.EvaluateAsync(page, [], new CrawlerOptions { EnableMicrosoftAxe = true });
 
         Assert.Single(findings);
         Assert.Equal("AXE-HOOK-NOT-CONFIGURED", findings[0].RuleId);
         Assert.True(findings[0].NeedsManualReview);
+    }
+
+    [Fact]
+    public void MicrosoftAxeHook_ParsesAxeCoreViolationsIntoFindings()
+    {
+        var page = new PageCapture
+        {
+            SanitizedUrl = "https://example.test",
+            BrowserMode = BrowserMode.Chrome,
+            Html = "<html><body><button></button></body></html>"
+        };
+
+        var findings = MicrosoftAxeAccessibilityEngine.ParseAxeCoreResults("""
+            {
+              "violations": [
+                {
+                  "id": "button-name",
+                  "impact": "serious",
+                  "description": "Ensures buttons have discernible text",
+                  "help": "Buttons must have discernible text",
+                  "tags": ["wcag412", "wcag2a"],
+                  "nodes": [
+                    {
+                      "target": ["button:nth-child(1)"],
+                      "html": "<button></button>",
+                      "failureSummary": "Fix any of the following: Element does not have inner text."
+                    }
+                  ]
+                }
+              ]
+            }
+            """, page);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("AXE-BUTTON-NAME", finding.RuleId);
+        Assert.Equal("4.1.2", finding.SuccessCriterion);
+        Assert.Equal(Severity.High, finding.Severity);
+        Assert.Equal("button:nth-child(1)", finding.Selector);
+        Assert.False(finding.NeedsManualReview);
     }
 
     [Fact]

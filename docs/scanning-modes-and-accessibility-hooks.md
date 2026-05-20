@@ -73,21 +73,33 @@ The hook is intentionally disabled by default:
 ```json
 {
   "Crawler": {
-    "EnableMicrosoftAxe": false
+    "EnableMicrosoftAxe": false,
+    "MicrosoftAxeRunnerPath": "",
+    "MicrosoftAxeTimeoutSeconds": 30
   }
 }
 ```
 
-When `EnableMicrosoftAxe` is set to `true`, each captured page is routed through the accessibility engine interface. The current implementation records an informational manual-review finding that confirms the hook path was reached.
+When `EnableMicrosoftAxe` is set to `true`, each captured page is routed through the accessibility engine interface after static checks run. This happens for pages captured by static stair, dynamic, and hybrid scans.
 
-It does not yet execute Microsoft Axe, Microsoft.Axe.Windows, or axe-core rules by itself.
+If `MicrosoftAxeRunnerPath` is empty, the tool records an informational manual-review finding that confirms the hook path was reached.
 
-To produce real Axe findings, an organization should add an approved adapter behind `IAccessibilityEngine` that:
+If `MicrosoftAxeRunnerPath` points to an approved local executable, the tool:
+
+1. Writes the captured page HTML to a temporary local file.
+2. Runs the configured executable with `--input <html-file> --url <page-url>`.
+3. Reads axe-core style JSON from standard output.
+4. Maps each violation into `AccessibilityFinding`.
+5. Deletes the temporary HTML file.
+
+The runner contract intentionally keeps the engine decoupled from this .NET solution. An organization can wrap Microsoft.Axe.Windows, axe-core, or another approved local engine as long as the wrapper emits axe-core compatible JSON.
+
+A runner must:
 
 - Runs the selected Axe engine locally.
 - Does not upload page content to cloud services.
-- Receives the captured DOM or browser context.
-- Emits deterministic violations into `AccessibilityFinding`.
+- Receives the captured DOM through the `--input` file.
+- Emits deterministic axe-core compatible JSON to stdout.
 - Keeps built-in WCAG/Section 508 static checks enabled.
 
 ## CLI Examples
@@ -124,6 +136,7 @@ legacy-a11y-crawler crawl \
   --scan-mode hybrid \
   --browser modern-edge \
   --enable-microsoft-axe true \
+  --microsoft-axe-runner ./tools/axe-runner \
   --max-pages 25 \
   --depth 2 \
   --output reports/legacy-hybrid

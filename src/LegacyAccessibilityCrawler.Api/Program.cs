@@ -127,7 +127,7 @@ app.MapPost("/api/crawl/start", async (CrawlerOptions options, JobStore jobs, IS
             {
                 foreach (var page in pages)
                 {
-                    findings.AddRange(await accessibilityEngine.EvaluateAsync(page, rules, jobToken));
+                    findings.AddRange(await accessibilityEngine.EvaluateAsync(page, rules, normalizedOptions, jobToken));
                 }
             }
 

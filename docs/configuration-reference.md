@@ -42,7 +42,9 @@ Security__BaseOutputDirectory="reports"
 | `Crawler:EnableKeyboardChecks` | boolean | `true` | Enables keyboard/focus evidence collection where supported. |
 | `Crawler:EnableWcag22EnhancedRules` | boolean | `false` | Adds optional WCAG 2.2 static rules. |
 | `Crawler:EnableSection508Rules` | boolean | `true` | Includes Section 508 static rule mappings. |
-| `Crawler:EnableMicrosoftAxe` | boolean | `false` | Enables the local `IAccessibilityEngine` hook. The built-in hook records that the path was reached; an approved adapter is required for real Axe violations. |
+| `Crawler:EnableMicrosoftAxe` | boolean | `false` | Enables the local `IAccessibilityEngine` hook. |
+| `Crawler:MicrosoftAxeRunnerPath` | string | empty | Optional path to an approved local Microsoft Axe or axe-core runner executable. The runner receives `--input <html-file> --url <page-url>` and must write axe-core JSON to stdout. |
+| `Crawler:MicrosoftAxeTimeoutSeconds` | number | `30` | Maximum time to wait for the local Axe runner per captured page. |
 | `Crawler:FallbackToStaticStairWhenBrowserUnavailable` | boolean | `true` | Falls back to static stair crawling when a dynamic browser or compatible local driver/browser environment cannot start. |
 | `Crawler:EnablePdfRuleOverlay` | boolean | `true` | Allows PDF-derived agency guidance to enrich findings. |
 | `Crawler:RedactQueryStrings` | boolean | `true` | Removes query strings from stored page URLs by default. |

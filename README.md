@@ -17,7 +17,7 @@ For step-by-step instructions written for non-technical users, including authent
 - Supports `dynamic`, `static-stair`, and `hybrid` scan modes for modern JavaScript pages and legacy server-rendered applications such as Struts 1.x `.do` routes.
 - Captures HTML, screenshots, DOM-derived evidence, headings, links, buttons, forms, labels, images, tables, iframes, ARIA attributes, focusable elements, and legacy risks.
 - Runs deterministic static checks against built-in rule packs.
-- Provides an optional local `IAccessibilityEngine` hook for future Microsoft Axe or axe-core integration, disabled by default.
+- Provides an optional local `IAccessibilityEngine` hook for Microsoft Axe or axe-core runner integration, disabled by default.
 - Optionally extracts guidance overlays from a supplied PDF.
 - Generates JSON, HTML, Markdown, CSV, executive summary, and Azure DevOps backlog CSV reports.
 - Imports manual findings for IE-mode and assistive technology validation.

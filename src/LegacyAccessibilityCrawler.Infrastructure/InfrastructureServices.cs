@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -660,33 +661,214 @@ public sealed class MicrosoftAxeAccessibilityEngine : IAccessibilityEngine
 
     public bool IsEnabled(CrawlerOptions options) => options.EnableMicrosoftAxe;
 
-    public Task<IReadOnlyList<AccessibilityFinding>> EvaluateAsync(PageCapture page, IReadOnlyList<AccessibilityRule> rules, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<AccessibilityFinding>> EvaluateAsync(PageCapture page, IReadOnlyList<AccessibilityRule> rules, CrawlerOptions options, CancellationToken cancellationToken = default)
     {
-        if (!page.Html.Contains("<", StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(page.Html) || !page.Html.Contains("<", StringComparison.Ordinal))
         {
-            return Task.FromResult<IReadOnlyList<AccessibilityFinding>>([]);
+            return [];
         }
 
-        IReadOnlyList<AccessibilityFinding> findings =
-        [
-            new AccessibilityFinding
-            {
-                PageUrl = page.SanitizedUrl,
-                RuleId = "AXE-HOOK-NOT-CONFIGURED",
-                Standard = "Axe integration hook",
-                IssueType = "microsoft-axe-hook-placeholder",
-                Severity = Severity.Info,
-                Confidence = 0.25,
-                Evidence = "EnableMicrosoftAxe was set, and the page DOM was routed to the accessibility engine hook. Install and configure a concrete Microsoft Axe/axe-core runner to emit engine violations.",
-                NeedsManualReview = true,
-                RemediationHint = "Configure an approved Microsoft Axe or axe-core adapter behind IAccessibilityEngine for enterprise engine findings.",
-                Source = EngineName,
-                BrowserMode = page.BrowserMode
-            }
-        ];
+        if (string.IsNullOrWhiteSpace(options.MicrosoftAxeRunnerPath))
+        {
+            return PlaceholderFinding(page);
+        }
 
-        return Task.FromResult(findings);
+        var runnerPath = Path.GetFullPath(options.MicrosoftAxeRunnerPath);
+        if (!File.Exists(runnerPath))
+        {
+            return RunnerUnavailableFinding(page, $"Configured Axe runner was not found: {runnerPath}");
+        }
+
+        var htmlPath = Path.Combine(Path.GetTempPath(), $"{ProductInfo.Name}-axe-{Guid.NewGuid():N}.html");
+        try
+        {
+            await File.WriteAllTextAsync(htmlPath, page.Html, cancellationToken);
+            var output = await RunAxeRunnerAsync(runnerPath, htmlPath, page.SanitizedUrl, Math.Clamp(options.MicrosoftAxeTimeoutSeconds, 1, 300), cancellationToken);
+            return ParseAxeCoreResults(output, page, EngineName);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            return RunnerUnavailableFinding(page, $"Configured Axe runner could not complete locally: {ex.Message}");
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(htmlPath);
+            }
+            catch (IOException)
+            {
+            }
+        }
     }
+
+    public static IReadOnlyList<AccessibilityFinding> ParseAxeCoreResults(string json, PageCapture page, string source = "MicrosoftAxe")
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        using var document = JsonDocument.Parse(json);
+        if (!TryGetArray(document.RootElement, "violations", out var violations))
+        {
+            return [];
+        }
+
+        var findings = new List<AccessibilityFinding>();
+        foreach (var violation in violations.EnumerateArray())
+        {
+            var id = GetString(violation, "id") ?? "axe-violation";
+            var impact = GetString(violation, "impact") ?? "moderate";
+            var description = GetString(violation, "description") ?? GetString(violation, "help") ?? id;
+            var help = GetString(violation, "help") ?? description;
+            var criterion = ExtractWcagCriterion(violation);
+
+            if (!TryGetArray(violation, "nodes", out var nodes) || nodes.GetArrayLength() == 0)
+            {
+                findings.Add(ToFinding(page, source, id, impact, criterion, description, help, null, null, null));
+                continue;
+            }
+
+            foreach (var node in nodes.EnumerateArray())
+            {
+                var selector = TryGetArray(node, "target", out var targets)
+                    ? string.Join(", ", targets.EnumerateArray().Select(target => target.GetString()).Where(value => !string.IsNullOrWhiteSpace(value)))
+                    : null;
+                var html = GetString(node, "html");
+                var failure = GetString(node, "failureSummary");
+                findings.Add(ToFinding(page, source, id, impact, criterion, description, help, selector, html, failure));
+            }
+        }
+
+        return findings;
+    }
+
+    private static async Task<string> RunAxeRunnerAsync(string runnerPath, string htmlPath, string pageUrl, int timeoutSeconds, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = runnerPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("--input");
+        startInfo.ArgumentList.Add(htmlPath);
+        startInfo.ArgumentList.Add("--url");
+        startInfo.ArgumentList.Add(pageUrl);
+
+        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start configured Axe runner.");
+        var stdout = await process.StandardOutput.ReadToEndAsync(timeout.Token);
+        var stderr = await process.StandardError.ReadToEndAsync(timeout.Token);
+        await process.WaitForExitAsync(timeout.Token);
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"Axe runner exited with code {process.ExitCode}. {stderr.Truncate(500)}");
+        }
+
+        return stdout;
+    }
+
+    private static AccessibilityFinding ToFinding(PageCapture page, string source, string id, string impact, string? criterion, string description, string help, string? selector, string? html, string? failure) => new()
+    {
+        PageUrl = page.SanitizedUrl,
+        RuleId = $"AXE-{id.ToUpperInvariant()}",
+        Standard = "axe-core",
+        SuccessCriterion = criterion ?? "Axe",
+        IssueType = $"axe-{id}",
+        Severity = MapImpact(impact),
+        Confidence = 0.9,
+        Evidence = string.IsNullOrWhiteSpace(failure) ? description : $"{description} {failure.CollapseWhitespace()}",
+        HtmlSnippet = html?.Truncate(1000) ?? "",
+        Selector = selector ?? "",
+        NeedsManualReview = false,
+        RemediationHint = help,
+        Source = source,
+        BrowserMode = page.BrowserMode
+    };
+
+    private static IReadOnlyList<AccessibilityFinding> PlaceholderFinding(PageCapture page) =>
+    [
+        new AccessibilityFinding
+        {
+            PageUrl = page.SanitizedUrl,
+            RuleId = "AXE-HOOK-NOT-CONFIGURED",
+            Standard = "Axe integration hook",
+            IssueType = "microsoft-axe-hook-placeholder",
+            Severity = Severity.Info,
+            Confidence = 0.25,
+            Evidence = "EnableMicrosoftAxe was set, and the page DOM was routed to the accessibility engine hook. Configure MicrosoftAxeRunnerPath to execute an approved local Axe runner.",
+            NeedsManualReview = true,
+            RemediationHint = "Configure MicrosoftAxeRunnerPath to an approved local Microsoft Axe or axe-core runner executable.",
+            Source = "MicrosoftAxe",
+            BrowserMode = page.BrowserMode
+        }
+    ];
+
+    private static IReadOnlyList<AccessibilityFinding> RunnerUnavailableFinding(PageCapture page, string evidence) =>
+    [
+        new AccessibilityFinding
+        {
+            PageUrl = page.SanitizedUrl,
+            RuleId = "AXE-RUNNER-UNAVAILABLE",
+            Standard = "Axe integration hook",
+            IssueType = "microsoft-axe-runner-unavailable",
+            Severity = Severity.Info,
+            Confidence = 0.25,
+            Evidence = evidence,
+            NeedsManualReview = true,
+            RemediationHint = "Configure MicrosoftAxeRunnerPath to an approved local Axe runner executable, or disable EnableMicrosoftAxe.",
+            Source = "MicrosoftAxe",
+            BrowserMode = page.BrowserMode
+        }
+    ];
+
+    private static bool TryGetArray(JsonElement element, string propertyName, out JsonElement value)
+    {
+        if (element.TryGetProperty(propertyName, out value) && value.ValueKind == JsonValueKind.Array)
+        {
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string? GetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static string? ExtractWcagCriterion(JsonElement violation)
+    {
+        if (!TryGetArray(violation, "tags", out var tags))
+        {
+            return null;
+        }
+
+        foreach (var tag in tags.EnumerateArray().Select(t => t.GetString()).Where(t => !string.IsNullOrWhiteSpace(t)))
+        {
+            var match = Regex.Match(tag!, "wcag(\\d)(\\d)(\\d)", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return $"{match.Groups[1].Value}.{match.Groups[2].Value}.{match.Groups[3].Value}";
+            }
+        }
+
+        return null;
+    }
+
+    private static Severity MapImpact(string impact) => impact.ToLowerInvariant() switch
+    {
+        "critical" => Severity.Critical,
+        "serious" => Severity.High,
+        "moderate" => Severity.Medium,
+        "minor" => Severity.Low,
+        _ => Severity.Info
+    };
 }
 
 public static class BundledBrowserDriverResolver

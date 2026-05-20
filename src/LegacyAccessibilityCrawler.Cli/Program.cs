@@ -102,6 +102,8 @@ static async Task<int> CrawlAsync(string[] args)
         EnableWcag22EnhancedRules = string.Equals(parsed.Get("standard"), "wcag22", StringComparison.OrdinalIgnoreCase),
         EnableSection508Rules = !string.Equals(parsed.Get("section508"), "false", StringComparison.OrdinalIgnoreCase),
         EnableMicrosoftAxe = parsed.GetBool("enable-microsoft-axe"),
+        MicrosoftAxeRunnerPath = parsed.Get("microsoft-axe-runner"),
+        MicrosoftAxeTimeoutSeconds = parsed.GetInt("microsoft-axe-timeout-seconds", 30),
         FallbackToStaticStairWhenBrowserUnavailable = !parsed.GetBool("disable-browser-fallback"),
         RulesPdfPath = parsed.Get("rules-pdf"),
         AllowedDomains = allowedDomains
@@ -127,7 +129,7 @@ static async Task<int> CrawlAsync(string[] args)
     {
         foreach (var page in pages)
         {
-            findings.AddRange(await accessibilityEngine.EvaluateAsync(page, rules));
+            findings.AddRange(await accessibilityEngine.EvaluateAsync(page, rules, options));
         }
     }
 

@@ -301,8 +301,14 @@
           <input id="enableMicrosoftAxe" name="enableMicrosoftAxe" type="checkbox">
           <div>
             <label for="enableMicrosoftAxe">Enable Microsoft Axe hook</label>
-            <div class="hint">This records the enterprise engine hook path. A concrete approved Axe adapter must be installed before it can produce Axe violations.</div>
+            <div class="hint">When a local runner path is configured, captured HTML is evaluated locally and mapped into report findings.</div>
           </div>
+        </div>
+
+        <div class="field">
+          <label for="microsoftAxeRunnerPath">Optional Microsoft Axe / axe-core runner path</label>
+          <input id="microsoftAxeRunnerPath" name="microsoftAxeRunnerPath" type="text" placeholder="./tools/axe-runner">
+          <div class="hint">The runner must be an approved local executable that accepts --input &lt;html-file&gt; --url &lt;page-url&gt; and writes axe-core JSON to stdout.</div>
         </div>
 
         <div class="actions">
@@ -372,6 +378,8 @@
         enableWcag22EnhancedRules: standard === "wcag22",
         enableSection508Rules: standard !== "wcagOnly",
         enableMicrosoftAxe: document.querySelector("#enableMicrosoftAxe").checked,
+        microsoftAxeRunnerPath: document.querySelector("#microsoftAxeRunnerPath").value.trim() || null,
+        microsoftAxeTimeoutSeconds: 30,
         fallbackToStaticStairWhenBrowserUnavailable: document.querySelector("#fallbackToStaticStairWhenBrowserUnavailable").checked,
         enablePdfRuleOverlay: Boolean(pdfPath),
         rulesPdfPath: pdfPath || null,

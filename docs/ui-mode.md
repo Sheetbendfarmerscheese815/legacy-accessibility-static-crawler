@@ -49,7 +49,8 @@ The UI has two main areas:
 | Capture screenshots | Saves page screenshots as evidence. |
 | Capture HTML evidence | Saves raw HTML as evidence. |
 | Use static stair fallback if browser is unavailable | Keeps the crawl useful on locked-down workstations by falling back to static stair mode when a browser cannot start. |
-| Enable Microsoft Axe hook | Routes captured pages through the local accessibility engine hook. A concrete approved Axe adapter is required before it emits real Axe violations. |
+| Enable Microsoft Axe hook | Routes captured pages through the local accessibility engine hook. |
+| Optional Microsoft Axe / axe-core runner path | Local approved executable used when the hook is enabled. It receives `--input <html-file> --url <page-url>` and writes axe-core JSON to stdout. |
 
 ## Choosing a Scan Mode
 

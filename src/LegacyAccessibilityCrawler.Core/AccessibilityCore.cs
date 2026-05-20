@@ -66,6 +66,8 @@ public sealed record CrawlerOptions
     public bool Headless { get; init; } = true;
     public bool AcceptInsecureCertificates { get; init; }
     public bool EnableMicrosoftAxe { get; init; }
+    public string? MicrosoftAxeRunnerPath { get; init; }
+    public int MicrosoftAxeTimeoutSeconds { get; init; } = 30;
     public bool FallbackToStaticStairWhenBrowserUnavailable { get; init; } = true;
     public IReadOnlyList<string> AllowedDomains { get; init; } = [];
 }
@@ -424,7 +426,7 @@ public interface IAccessibilityEngine
 {
     string EngineName { get; }
     bool IsEnabled(CrawlerOptions options);
-    Task<IReadOnlyList<AccessibilityFinding>> EvaluateAsync(PageCapture page, IReadOnlyList<AccessibilityRule> rules, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AccessibilityFinding>> EvaluateAsync(PageCapture page, IReadOnlyList<AccessibilityRule> rules, CrawlerOptions options, CancellationToken cancellationToken = default);
 }
 
 public interface IPdfRulesLoaderService
