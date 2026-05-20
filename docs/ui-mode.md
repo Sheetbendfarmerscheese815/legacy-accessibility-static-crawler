@@ -36,6 +36,7 @@ The UI has two main areas:
 | --- | --- |
 | Website URL | The first page to crawl. |
 | Browser mode | `Chrome`, `Modern Edge`, or `Edge IE-mode-assisted`. |
+| Scan mode | `Dynamic browser scan`, `Static stair scan`, or `Hybrid static + dynamic`. |
 | Rule pack | WCAG 2.1 AA, optional WCAG 2.2, and optional Section 508 mapping. |
 | Max pages | Maximum number of pages to capture. |
 | Crawl depth | How far to follow links from the start page. |
@@ -47,6 +48,19 @@ The UI has two main areas:
 | Stay on the same domain | Prevents the crawler from leaving the starting site by default. |
 | Capture screenshots | Saves page screenshots as evidence. |
 | Capture HTML evidence | Saves raw HTML as evidence. |
+| Use static stair fallback if browser is unavailable | Keeps the crawl useful on locked-down workstations by falling back to static stair mode when a browser cannot start. |
+| Enable Microsoft Axe hook | Routes captured pages through the local accessibility engine hook. |
+| Optional Microsoft Axe / axe-core runner path | Local approved executable used when the hook is enabled. It receives `--input <html-file> --url <page-url>` and writes axe-core JSON to stdout. |
+
+## Choosing a Scan Mode
+
+Use `Dynamic browser scan` for most public or modern sites. It opens Chrome or Edge through Selenium and captures the rendered DOM after JavaScript has had time to run.
+
+Use `Static stair scan` for legacy server-rendered applications, including Struts 1.x systems with `.do` action URLs and form-based navigation. It preserves session cookies during the crawl and follows links and form actions level by level.
+
+Use `Hybrid static + dynamic` when the application mixes traditional server-rendered screens with JavaScript-enhanced pages.
+
+See [scanning-modes-and-accessibility-hooks.md](scanning-modes-and-accessibility-hooks.md) for more detail.
 
 ## Headless Crawling
 

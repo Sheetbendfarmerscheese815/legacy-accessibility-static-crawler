@@ -10,6 +10,9 @@ raw-html/
 cookies/
 storage-state/
 TestResults/
+*-axe-*.html
+mock-axe-*.html
+*.tmp.html
 *.user
 *.suo
 *.nupkg

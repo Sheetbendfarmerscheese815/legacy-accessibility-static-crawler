@@ -33,6 +33,7 @@ builder.Services.AddSingleton<IRulePackService, RulePackService>();
 builder.Services.AddSingleton<IStaticCheckEngine, StaticCheckEngine>();
 builder.Services.AddSingleton<IRuleMatcherService, RuleMatcherService>();
 builder.Services.AddSingleton<ICrawlerService, SeleniumCrawlerService>();
+builder.Services.AddSingleton<IAccessibilityEngine, MicrosoftAxeAccessibilityEngine>();
 builder.Services.AddSingleton<IPdfRulesLoaderService, PdfRulesLoaderService>();
 builder.Services.AddSingleton<IManualFindingsImporter, ManualFindingsImporter>();
 builder.Services.AddSingleton<IReportGenerator, ReportGenerator>();
@@ -110,6 +111,7 @@ app.MapPost("/api/crawl/start", async (CrawlerOptions options, JobStore jobs, IS
             var matcher = scope.ServiceProvider.GetRequiredService<IRuleMatcherService>();
             var reporting = scope.ServiceProvider.GetRequiredService<IReportGenerator>();
             var pdf = scope.ServiceProvider.GetRequiredService<IPdfRulesLoaderService>();
+            var accessibilityEngines = scope.ServiceProvider.GetServices<IAccessibilityEngine>();
 
             var pdfRules = new List<AccessibilityRule>();
             if (normalizedOptions.EnablePdfRuleOverlay && !string.IsNullOrWhiteSpace(normalizedOptions.RulesPdfPath))
@@ -120,7 +122,15 @@ app.MapPost("/api/crawl/start", async (CrawlerOptions options, JobStore jobs, IS
 
             var rules = await rulePack.LoadRulesAsync(normalizedOptions.EnableSection508Rules, normalizedOptions.EnableWcag22EnhancedRules, pdfRules, jobToken);
             var pages = await crawler.CrawlAsync(normalizedOptions, jobToken);
-            var findings = matcher.EnrichFindings(pages.SelectMany(p => engine.Analyze(p, rules)), rules);
+            var findings = matcher.EnrichFindings(pages.SelectMany(p => engine.Analyze(p, rules)), rules).ToList();
+            foreach (var accessibilityEngine in accessibilityEngines.Where(e => e.IsEnabled(normalizedOptions)))
+            {
+                foreach (var page in pages)
+                {
+                    findings.AddRange(await accessibilityEngine.EvaluateAsync(page, rules, normalizedOptions, jobToken));
+                }
+            }
+
             var result = new ScanResult
             {
                 Options = normalizedOptions,

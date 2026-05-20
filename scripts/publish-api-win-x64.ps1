@@ -51,12 +51,12 @@ $NuGetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $
 $ChromeDriverVersion = Get-PackageVersion "Selenium.WebDriver.ChromeDriver"
 $EdgeDriverVersion = Get-PackageVersion "Selenium.WebDriver.MSEdgeDriver"
 $Runtime = "win-x64"
-$Project = "src/LegacyAccessibilityCrawler.Cli/LegacyAccessibilityCrawler.Cli.csproj"
-$PublishDir = "artifacts/publish/$Runtime"
+$Project = "src/LegacyAccessibilityCrawler.Api/LegacyAccessibilityCrawler.Api.csproj"
+$PublishDir = "artifacts/publish/api-$Runtime"
 $ReleaseDir = "artifacts/releases"
-$Archive = "$ReleaseDir/legacy-accessibility-static-crawler-$Version-$Runtime.zip"
+$Archive = "$ReleaseDir/legacy-accessibility-static-crawler-api-$Version-$Runtime.zip"
 
-Write-Host "Publishing legacy-accessibility-static-crawler $Version for $Runtime"
+Write-Host "Publishing legacy-accessibility-static-crawler API/UI $Version for $Runtime"
 Remove-Item $PublishDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $PublishDir, $ReleaseDir -Force | Out-Null
 
@@ -86,7 +86,6 @@ Copy-ReleaseContent $PublishDir
 Remove-Item $Archive -Force -ErrorAction SilentlyContinue
 Compress-Archive -Path "$PublishDir/*" -DestinationPath $Archive
 $Hash = (Get-FileHash $Archive -Algorithm SHA256).Hash.ToLowerInvariant()
-"$Hash  $(Split-Path $Archive -Leaf)" | Set-Content "$ReleaseDir/SHA256SUMS.txt"
+"$Hash  $(Split-Path $Archive -Leaf)" | Set-Content "$ReleaseDir/SHA256SUMS-api-$Runtime.txt"
 
 Write-Host "Release archive: $Archive"
-Write-Host "Checksum file: $ReleaseDir/SHA256SUMS.txt"

@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -14,7 +16,78 @@ namespace LegacyAccessibilityCrawler.Infrastructure;
 
 public sealed class SeleniumCrawlerService : ICrawlerService
 {
+    private readonly IReadOnlyList<IScanStrategy> _strategies;
+
+    public SeleniumCrawlerService()
+    {
+        _strategies =
+        [
+            new DynamicSeleniumScanStrategy(),
+            new StaticStairScanStrategy()
+        ];
+    }
+
     public async Task<IReadOnlyList<PageCapture>> CrawlAsync(CrawlerOptions options, CancellationToken cancellationToken = default)
+    {
+        Console.WriteLine($"Starting {options.ScanMode} scan for {options.StartUrl}");
+        try
+        {
+            return options.ScanMode switch
+            {
+                ScanMode.StaticStair => await Strategy(ScanMode.StaticStair).ScanAsync(options, cancellationToken),
+                ScanMode.Hybrid => await CrawlHybridAsync(options, cancellationToken),
+                _ => await Strategy(ScanMode.Dynamic).ScanAsync(options, cancellationToken)
+            };
+        }
+        catch (Exception ex) when (options.FallbackToStaticStairWhenBrowserUnavailable &&
+            options.ScanMode == ScanMode.Dynamic &&
+            IsBrowserStartupException(ex))
+        {
+            Console.WriteLine($"Browser environment unavailable for dynamic scan. Falling back to StaticStair scan. Reason: {ex.Message}");
+            return await Strategy(ScanMode.StaticStair).ScanAsync(options with { ScanMode = ScanMode.StaticStair }, cancellationToken);
+        }
+    }
+
+    private async Task<IReadOnlyList<PageCapture>> CrawlHybridAsync(CrawlerOptions options, CancellationToken cancellationToken)
+    {
+        var staticPages = await Strategy(ScanMode.StaticStair).ScanAsync(options, cancellationToken);
+        IReadOnlyList<PageCapture> dynamicPages;
+        try
+        {
+            dynamicPages = await Strategy(ScanMode.Dynamic).ScanAsync(options, cancellationToken);
+        }
+        catch (Exception ex) when (options.FallbackToStaticStairWhenBrowserUnavailable && IsBrowserStartupException(ex))
+        {
+            Console.WriteLine($"Browser environment unavailable during hybrid scan. Continuing with StaticStair results only. Reason: {ex.Message}");
+            dynamicPages = [];
+        }
+
+        return staticPages.Concat(dynamicPages)
+            .GroupBy(page => page.SanitizedUrl, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Take(options.MaxPages)
+            .ToList();
+    }
+
+    private IScanStrategy Strategy(ScanMode mode) => _strategies.Single(strategy => strategy.Mode == mode);
+
+    private sealed class DynamicSeleniumScanStrategy : IScanStrategy
+    {
+        public ScanMode Mode => ScanMode.Dynamic;
+
+        public Task<IReadOnlyList<PageCapture>> ScanAsync(CrawlerOptions options, CancellationToken cancellationToken = default) =>
+            CrawlDynamicAsync(options, cancellationToken);
+    }
+
+    private sealed class StaticStairScanStrategy : IScanStrategy
+    {
+        public ScanMode Mode => ScanMode.StaticStair;
+
+        public Task<IReadOnlyList<PageCapture>> ScanAsync(CrawlerOptions options, CancellationToken cancellationToken = default) =>
+            CrawlStaticStairAsync(options, cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<PageCapture>> CrawlDynamicAsync(CrawlerOptions options, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(options.StartUrl))
         {
@@ -50,6 +123,7 @@ public sealed class SeleniumCrawlerService : ICrawlerService
             }
 
             driver.Navigate().GoToUrl(url);
+            WaitForDomStabilization(driver, cancellationToken);
             if (options.DelaySeconds > 0)
             {
                 await Task.Delay(TimeSpan.FromSeconds(options.DelaySeconds), cancellationToken);
@@ -88,14 +162,113 @@ public sealed class SeleniumCrawlerService : ICrawlerService
         return captures;
     }
 
+    private static async Task<IReadOnlyList<PageCapture>> CrawlStaticStairAsync(CrawlerOptions options, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(options.StartUrl))
+        {
+            throw new ArgumentException("StartUrl is required.", nameof(options));
+        }
+
+        Directory.CreateDirectory(options.OutputDirectory);
+        Directory.CreateDirectory(Path.Combine(options.OutputDirectory, "raw-html"));
+
+        var cookieContainer = new CookieContainer();
+        using var handler = new HttpClientHandler
+        {
+            CookieContainer = cookieContainer,
+            AllowAutoRedirect = true,
+            UseCookies = true
+        };
+        using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"{ProductInfo.Name}/{ProductInfo.Version}");
+
+        var queue = new Queue<(Uri Url, int Depth)>();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var captures = new List<PageCapture>();
+        var start = new Uri(options.StartUrl);
+        queue.Enqueue((start, 0));
+
+        while (queue.Count > 0 && captures.Count < options.MaxPages)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var (url, depth) = queue.Dequeue();
+            var sanitized = SanitizeUrl(url, options.RedactQueryStrings);
+            if (!visited.Add(sanitized))
+            {
+                continue;
+            }
+
+            string html;
+            try
+            {
+                Console.WriteLine($"Static stair capture depth {depth}: {sanitized}");
+                using var response = await client.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Skipping {sanitized}: HTTP {(int)response.StatusCode}");
+                    continue;
+                }
+
+                html = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or UriFormatException)
+            {
+                Console.WriteLine($"Skipping {sanitized}: {ex.GetType().Name}");
+                continue;
+            }
+
+            var capture = BuildCaptureFromHtml(options, url, sanitized, html, captures.Count + 1);
+            captures.Add(capture);
+
+            if (depth >= options.CrawlDepth)
+            {
+                continue;
+            }
+
+            foreach (var next in ExtractStaticNavigationTargets(html, url, start, options))
+            {
+                var nextSanitized = SanitizeUrl(next, options.RedactQueryStrings);
+                if (!visited.Contains(nextSanitized))
+                {
+                    queue.Enqueue((next, depth + 1));
+                }
+            }
+
+            if (options.DelaySeconds > 0)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(options.DelaySeconds), cancellationToken);
+            }
+        }
+
+        return captures;
+    }
+
     private static IWebDriver CreateDriver(CrawlerOptions options)
     {
         return options.BrowserMode switch
         {
-            BrowserMode.Chrome => new ChromeDriver(CreateChromeOptions(options)),
+            BrowserMode.Chrome => CreateChromeDriver(options),
             BrowserMode.EdgeIeModeAssisted => CreateIeModeAssistedEdgeDriver(),
-            _ => new EdgeDriver(CreateEdgeOptions(options))
+            _ => CreateEdgeDriver(options)
         };
+    }
+
+    private static IWebDriver CreateChromeDriver(CrawlerOptions options)
+    {
+        var driverPath = BundledBrowserDriverResolver.ResolveDriverDirectory(BrowserMode.Chrome);
+        var service = driverPath is null
+            ? ChromeDriverService.CreateDefaultService()
+            : ChromeDriverService.CreateDefaultService(driverPath);
+        return new ChromeDriver(service, CreateChromeOptions(options));
+    }
+
+    private static IWebDriver CreateEdgeDriver(CrawlerOptions options)
+    {
+        var driverPath = BundledBrowserDriverResolver.ResolveDriverDirectory(BrowserMode.ModernEdge);
+        var service = driverPath is null
+            ? EdgeDriverService.CreateDefaultService()
+            : EdgeDriverService.CreateDefaultService(driverPath);
+        return new EdgeDriver(service, CreateEdgeOptions(options));
     }
 
     private static ChromeOptions CreateChromeOptions(CrawlerOptions options)
@@ -127,8 +300,16 @@ public sealed class SeleniumCrawlerService : ICrawlerService
         var edgeOptions = new EdgeOptions { AcceptInsecureCertificates = false };
         // IE mode requires enterprise Edge security zone and site-list policy configuration outside Selenium.
         edgeOptions.AddArgument("--ie-mode-test");
-        return new EdgeDriver(edgeOptions);
+        var driverPath = BundledBrowserDriverResolver.ResolveDriverDirectory(BrowserMode.EdgeIeModeAssisted);
+        var service = driverPath is null
+            ? EdgeDriverService.CreateDefaultService()
+            : EdgeDriverService.CreateDefaultService(driverPath);
+        return new EdgeDriver(service, edgeOptions);
     }
+
+    private static bool IsBrowserStartupException(Exception exception) =>
+        exception is DriverServiceNotFoundException or WebDriverException or InvalidOperationException ||
+        exception.InnerException is not null && IsBrowserStartupException(exception.InnerException);
 
     private static string SafeGetPageSource(IWebDriver driver)
     {
@@ -142,7 +323,52 @@ public sealed class SeleniumCrawlerService : ICrawlerService
         }
     }
 
+    private static void WaitForDomStabilization(IWebDriver driver, CancellationToken cancellationToken)
+    {
+        if (driver is not IJavaScriptExecutor js)
+        {
+            return;
+        }
+
+        var previousLength = -1L;
+        var stableSamples = 0;
+        for (var i = 0; i < 20; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var readyState = js.ExecuteScript("return document.readyState")?.ToString();
+                var length = Convert.ToInt64(js.ExecuteScript("return document.documentElement ? document.documentElement.outerHTML.length : 0"), CultureInfo.InvariantCulture);
+                stableSamples = readyState == "complete" && length == previousLength ? stableSamples + 1 : 0;
+                if (stableSamples >= 2)
+                {
+                    return;
+                }
+
+                previousLength = length;
+            }
+            catch (WebDriverException)
+            {
+                return;
+            }
+
+            Thread.Sleep(250);
+        }
+    }
+
     private static PageCapture BuildCapture(IWebDriver driver, CrawlerOptions options, Uri url, string sanitizedUrl, string html, int index)
+    {
+        string? screenshotPath = null;
+        if (options.CaptureScreenshots && driver is ITakesScreenshot screenshotDriver)
+        {
+            screenshotPath = Path.Combine(options.OutputDirectory, "screenshots", $"{index:000}.png");
+            screenshotDriver.GetScreenshot().SaveAsFile(screenshotPath);
+        }
+
+        return BuildCaptureFromHtml(options, url, sanitizedUrl, html, index, driver.Title, screenshotPath);
+    }
+
+    internal static PageCapture BuildCaptureFromHtml(CrawlerOptions options, Uri url, string sanitizedUrl, string html, int index, string? title = null, string? screenshotPath = null)
     {
         var document = new HtmlDocument();
         document.LoadHtml(html);
@@ -153,19 +379,12 @@ public sealed class SeleniumCrawlerService : ICrawlerService
             File.WriteAllText(htmlPath, html);
         }
 
-        string? screenshotPath = null;
-        if (options.CaptureScreenshots && driver is ITakesScreenshot screenshotDriver)
-        {
-            screenshotPath = Path.Combine(options.OutputDirectory, "screenshots", $"{index:000}.png");
-            screenshotDriver.GetScreenshot().SaveAsFile(screenshotPath);
-        }
-
         return new PageCapture
         {
             Url = url.ToString(),
             SanitizedUrl = sanitizedUrl,
             BrowserMode = options.BrowserMode,
-            Title = document.DocumentNode.SelectSingleNode("//title")?.InnerText.Trim() ?? driver.Title ?? "",
+            Title = document.DocumentNode.SelectSingleNode("//title")?.InnerText.Trim() ?? title ?? "",
             Html = html,
             HtmlPath = htmlPath,
             ScreenshotPath = screenshotPath,
@@ -183,6 +402,46 @@ public sealed class SeleniumCrawlerService : ICrawlerService
             LegacyRisks = ExtractLegacyRisks(document, html),
             DomCaptureLimited = string.IsNullOrWhiteSpace(html) || options.BrowserMode == BrowserMode.EdgeIeModeAssisted && html.Length < 500
         };
+    }
+
+    private static IEnumerable<Uri> ExtractStaticNavigationTargets(string html, Uri currentUrl, Uri startUrl, CrawlerOptions options)
+    {
+        var document = new HtmlDocument();
+        document.LoadHtml(html);
+        var rawTargets = new List<string?>();
+        rawTargets.AddRange((document.DocumentNode.SelectNodes("//a[@href]") ?? Enumerable.Empty<HtmlNode>()).Select(node => node.GetAttributeValue("href", null)));
+        rawTargets.AddRange((document.DocumentNode.SelectNodes("//form[@action]") ?? Enumerable.Empty<HtmlNode>()).Select(node => node.GetAttributeValue("action", null)));
+
+        foreach (var raw in rawTargets.Where(target => !string.IsNullOrWhiteSpace(target)))
+        {
+            if (!Uri.TryCreate(currentUrl, raw, out var next) || next.Scheme is not ("http" or "https"))
+            {
+                continue;
+            }
+
+            if (options.SameDomainOnly && !string.Equals(next.Host, startUrl.Host, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (options.AllowedDomains.Count > 0 && !options.AllowedDomains.Any(domain => HostMatches(next.Host, domain)))
+            {
+                continue;
+            }
+
+            yield return next;
+        }
+    }
+
+    private static bool HostMatches(string host, string pattern)
+    {
+        if (pattern.StartsWith("*.", StringComparison.Ordinal))
+        {
+            var suffix = pattern[1..];
+            return host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && host.Length > suffix.Length;
+        }
+
+        return string.Equals(host, pattern, StringComparison.OrdinalIgnoreCase);
     }
 
     private static IReadOnlyList<HeadingEvidence> ExtractHeadings(HtmlDocument document) =>
@@ -394,6 +653,274 @@ public sealed class PdfRulesLoaderService : IPdfRulesLoaderService
             .Select(m => m.Value.TrimEnd('.', ',', ';')).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     private sealed record PdfChunk(int Page, string Heading, string Text);
+}
+
+public sealed class MicrosoftAxeAccessibilityEngine : IAccessibilityEngine
+{
+    public string EngineName => "MicrosoftAxe";
+
+    public bool IsEnabled(CrawlerOptions options) => options.EnableMicrosoftAxe;
+
+    public async Task<IReadOnlyList<AccessibilityFinding>> EvaluateAsync(PageCapture page, IReadOnlyList<AccessibilityRule> rules, CrawlerOptions options, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(page.Html) || !page.Html.Contains("<", StringComparison.Ordinal))
+        {
+            return [];
+        }
+
+        if (string.IsNullOrWhiteSpace(options.MicrosoftAxeRunnerPath))
+        {
+            return PlaceholderFinding(page);
+        }
+
+        var runnerPath = Path.GetFullPath(options.MicrosoftAxeRunnerPath);
+        if (!File.Exists(runnerPath))
+        {
+            return RunnerUnavailableFinding(page, $"Configured Axe runner was not found: {runnerPath}");
+        }
+
+        var htmlPath = Path.Combine(Path.GetTempPath(), $"{ProductInfo.Name}-axe-{Guid.NewGuid():N}.html");
+        try
+        {
+            await File.WriteAllTextAsync(htmlPath, page.Html, cancellationToken);
+            var output = await RunAxeRunnerAsync(runnerPath, htmlPath, page.SanitizedUrl, Math.Clamp(options.MicrosoftAxeTimeoutSeconds, 1, 300), cancellationToken);
+            return ParseAxeCoreResults(output, page, EngineName);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            return RunnerUnavailableFinding(page, $"Configured Axe runner could not complete locally: {ex.Message}");
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(htmlPath);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    public static IReadOnlyList<AccessibilityFinding> ParseAxeCoreResults(string json, PageCapture page, string source = "MicrosoftAxe")
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        using var document = JsonDocument.Parse(json);
+        if (!TryGetArray(document.RootElement, "violations", out var violations))
+        {
+            return [];
+        }
+
+        var findings = new List<AccessibilityFinding>();
+        foreach (var violation in violations.EnumerateArray())
+        {
+            var id = GetString(violation, "id") ?? "axe-violation";
+            var impact = GetString(violation, "impact") ?? "moderate";
+            var description = GetString(violation, "description") ?? GetString(violation, "help") ?? id;
+            var help = GetString(violation, "help") ?? description;
+            var criterion = ExtractWcagCriterion(violation);
+
+            if (!TryGetArray(violation, "nodes", out var nodes) || nodes.GetArrayLength() == 0)
+            {
+                findings.Add(ToFinding(page, source, id, impact, criterion, description, help, null, null, null));
+                continue;
+            }
+
+            foreach (var node in nodes.EnumerateArray())
+            {
+                var selector = TryGetArray(node, "target", out var targets)
+                    ? string.Join(", ", targets.EnumerateArray().Select(target => target.GetString()).Where(value => !string.IsNullOrWhiteSpace(value)))
+                    : null;
+                var html = GetString(node, "html");
+                var failure = GetString(node, "failureSummary");
+                findings.Add(ToFinding(page, source, id, impact, criterion, description, help, selector, html, failure));
+            }
+        }
+
+        return findings;
+    }
+
+    private static async Task<string> RunAxeRunnerAsync(string runnerPath, string htmlPath, string pageUrl, int timeoutSeconds, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = runnerPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("--input");
+        startInfo.ArgumentList.Add(htmlPath);
+        startInfo.ArgumentList.Add("--url");
+        startInfo.ArgumentList.Add(pageUrl);
+
+        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start configured Axe runner.");
+        var stdout = await process.StandardOutput.ReadToEndAsync(timeout.Token);
+        var stderr = await process.StandardError.ReadToEndAsync(timeout.Token);
+        await process.WaitForExitAsync(timeout.Token);
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"Axe runner exited with code {process.ExitCode}. {stderr.Truncate(500)}");
+        }
+
+        return stdout;
+    }
+
+    private static AccessibilityFinding ToFinding(PageCapture page, string source, string id, string impact, string? criterion, string description, string help, string? selector, string? html, string? failure) => new()
+    {
+        PageUrl = page.SanitizedUrl,
+        RuleId = $"AXE-{id.ToUpperInvariant()}",
+        Standard = "axe-core",
+        SuccessCriterion = criterion ?? "Axe",
+        IssueType = $"axe-{id}",
+        Severity = MapImpact(impact),
+        Confidence = 0.9,
+        Evidence = string.IsNullOrWhiteSpace(failure) ? description : $"{description} {failure.CollapseWhitespace()}",
+        HtmlSnippet = html?.Truncate(1000) ?? "",
+        Selector = selector ?? "",
+        NeedsManualReview = false,
+        RemediationHint = help,
+        Source = source,
+        BrowserMode = page.BrowserMode
+    };
+
+    private static IReadOnlyList<AccessibilityFinding> PlaceholderFinding(PageCapture page) =>
+    [
+        new AccessibilityFinding
+        {
+            PageUrl = page.SanitizedUrl,
+            RuleId = "AXE-HOOK-NOT-CONFIGURED",
+            Standard = "Axe integration hook",
+            IssueType = "microsoft-axe-hook-placeholder",
+            Severity = Severity.Info,
+            Confidence = 0.25,
+            Evidence = "EnableMicrosoftAxe was set, and the page DOM was routed to the accessibility engine hook. Configure MicrosoftAxeRunnerPath to execute an approved local Axe runner.",
+            NeedsManualReview = true,
+            RemediationHint = "Configure MicrosoftAxeRunnerPath to an approved local Microsoft Axe or axe-core runner executable.",
+            Source = "MicrosoftAxe",
+            BrowserMode = page.BrowserMode
+        }
+    ];
+
+    private static IReadOnlyList<AccessibilityFinding> RunnerUnavailableFinding(PageCapture page, string evidence) =>
+    [
+        new AccessibilityFinding
+        {
+            PageUrl = page.SanitizedUrl,
+            RuleId = "AXE-RUNNER-UNAVAILABLE",
+            Standard = "Axe integration hook",
+            IssueType = "microsoft-axe-runner-unavailable",
+            Severity = Severity.Info,
+            Confidence = 0.25,
+            Evidence = evidence,
+            NeedsManualReview = true,
+            RemediationHint = "Configure MicrosoftAxeRunnerPath to an approved local Axe runner executable, or disable EnableMicrosoftAxe.",
+            Source = "MicrosoftAxe",
+            BrowserMode = page.BrowserMode
+        }
+    ];
+
+    private static bool TryGetArray(JsonElement element, string propertyName, out JsonElement value)
+    {
+        if (element.TryGetProperty(propertyName, out value) && value.ValueKind == JsonValueKind.Array)
+        {
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string? GetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static string? ExtractWcagCriterion(JsonElement violation)
+    {
+        if (!TryGetArray(violation, "tags", out var tags))
+        {
+            return null;
+        }
+
+        foreach (var tag in tags.EnumerateArray().Select(t => t.GetString()).Where(t => !string.IsNullOrWhiteSpace(t)))
+        {
+            var match = Regex.Match(tag!, "wcag(\\d)(\\d)(\\d)", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return $"{match.Groups[1].Value}.{match.Groups[2].Value}.{match.Groups[3].Value}";
+            }
+        }
+
+        return null;
+    }
+
+    private static Severity MapImpact(string impact) => impact.ToLowerInvariant() switch
+    {
+        "critical" => Severity.Critical,
+        "serious" => Severity.High,
+        "moderate" => Severity.Medium,
+        "minor" => Severity.Low,
+        _ => Severity.Info
+    };
+}
+
+public static class BundledBrowserDriverResolver
+{
+    public static string? ResolveDriverDirectory(BrowserMode browserMode) =>
+        ResolveDriverDirectory(browserMode, AppContext.BaseDirectory);
+
+    public static string? ResolveDriverDirectory(BrowserMode browserMode, string baseDirectory)
+    {
+        var driverName = DriverFileName(browserMode);
+        var candidates = new[]
+        {
+            Path.GetFullPath(baseDirectory),
+            Path.Combine(Path.GetFullPath(baseDirectory), "drivers"),
+            Path.Combine(Path.GetFullPath(baseDirectory), "browser-drivers")
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var path = Path.Combine(candidate, driverName);
+            if (File.Exists(path))
+            {
+                TryMarkExecutable(path);
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static string DriverFileName(BrowserMode browserMode)
+    {
+        var extension = OperatingSystem.IsWindows() ? ".exe" : "";
+        return browserMode == BrowserMode.Chrome ? $"chromedriver{extension}" : $"msedgedriver{extension}";
+    }
+
+    private static void TryMarkExecutable(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            var mode = File.GetUnixFileMode(path);
+            File.SetUnixFileMode(path, mode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+        }
+    }
 }
 
 public sealed class ManualFindingsImporter : IManualFindingsImporter

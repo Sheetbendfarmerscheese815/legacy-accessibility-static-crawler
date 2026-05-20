@@ -1,4 +1,5 @@
 {
+  "scanMode": "dynamic",
   "browserMode": "modern-edge",
   "startUrl": "https://example.gov",
   "maxPages": 25,
@@ -13,6 +14,10 @@
   "enableKeyboardChecks": true,
   "enableWcag22EnhancedRules": false,
   "enableSection508Rules": true,
+  "enableMicrosoftAxe": false,
+  "microsoftAxeRunnerPath": "",
+  "microsoftAxeTimeoutSeconds": 30,
+  "fallbackToStaticStairWhenBrowserUnavailable": true,
   "enablePdfRuleOverlay": true,
   "redactQueryStrings": true,
   "headless": true,

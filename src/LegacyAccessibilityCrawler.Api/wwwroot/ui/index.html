@@ -212,6 +212,18 @@
           </div>
 
           <div class="field">
+            <label for="scanMode">Scan mode</label>
+            <select id="scanMode" name="scanMode">
+              <option value="Dynamic">Dynamic browser scan</option>
+              <option value="StaticStair">Static stair scan</option>
+              <option value="Hybrid">Hybrid static + dynamic</option>
+            </select>
+            <div class="hint">Static stair scans traditional links and form actions. Dynamic scans render JavaScript in a browser.</div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
             <label for="standard">Rule pack</label>
             <select id="standard" name="standard">
               <option value="wcag21">WCAG 2.1 AA + Section 508</option>
@@ -277,6 +289,28 @@
           <label for="captureHtml">Capture HTML evidence</label>
         </div>
 
+        <div class="check-row">
+          <input id="fallbackToStaticStairWhenBrowserUnavailable" name="fallbackToStaticStairWhenBrowserUnavailable" type="checkbox" checked>
+          <div>
+            <label for="fallbackToStaticStairWhenBrowserUnavailable">Use static stair fallback if browser is unavailable</label>
+            <div class="hint">Recommended for portable packages and locked-down legacy test workstations.</div>
+          </div>
+        </div>
+
+        <div class="check-row">
+          <input id="enableMicrosoftAxe" name="enableMicrosoftAxe" type="checkbox">
+          <div>
+            <label for="enableMicrosoftAxe">Enable Microsoft Axe hook</label>
+            <div class="hint">When a local runner path is configured, captured HTML is evaluated locally and mapped into report findings.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="microsoftAxeRunnerPath">Optional Microsoft Axe / axe-core runner path</label>
+          <input id="microsoftAxeRunnerPath" name="microsoftAxeRunnerPath" type="text" placeholder="./tools/axe-runner">
+          <div class="hint">The runner must be an approved local executable that accepts --input &lt;html-file&gt; --url &lt;page-url&gt; and writes axe-core JSON to stdout.</div>
+        </div>
+
         <div class="actions">
           <button id="start-button" type="submit">Start Crawl</button>
           <button class="secondary" type="button" id="refresh-button">Refresh Dashboard</button>
@@ -330,6 +364,7 @@
 
       return {
         browserMode: browserMode.value,
+        scanMode: document.querySelector("#scanMode").value,
         startUrl: document.querySelector("#startUrl").value.trim(),
         maxPages: numberValue("maxPages"),
         crawlDepth: numberValue("crawlDepth"),
@@ -342,6 +377,10 @@
         enableKeyboardChecks: true,
         enableWcag22EnhancedRules: standard === "wcag22",
         enableSection508Rules: standard !== "wcagOnly",
+        enableMicrosoftAxe: document.querySelector("#enableMicrosoftAxe").checked,
+        microsoftAxeRunnerPath: document.querySelector("#microsoftAxeRunnerPath").value.trim() || null,
+        microsoftAxeTimeoutSeconds: 30,
+        fallbackToStaticStairWhenBrowserUnavailable: document.querySelector("#fallbackToStaticStairWhenBrowserUnavailable").checked,
         enablePdfRuleOverlay: Boolean(pdfPath),
         rulesPdfPath: pdfPath || null,
         redactQueryStrings: true,

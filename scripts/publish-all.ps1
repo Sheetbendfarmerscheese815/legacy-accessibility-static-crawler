@@ -20,6 +20,9 @@ Write-Host "Publishing all release packages for version $Version"
 & "$PSScriptRoot/publish-win-x64.ps1" -Version $Version
 & bash "$PSScriptRoot/publish-linux-x64.sh" $Version
 & bash "$PSScriptRoot/publish-osx-arm64.sh" $Version
+& "$PSScriptRoot/publish-api-win-x64.ps1" -Version $Version
+& bash "$PSScriptRoot/publish-api-linux-x64.sh" $Version
+& bash "$PSScriptRoot/publish-api-osx-arm64.sh" $Version
 
 $archives = Get-ChildItem $ReleaseDir -File | Where-Object { $_.Name -match '\.(zip|tar\.gz)$' } | Sort-Object Name
 $checksumLines = foreach ($archive in $archives) {

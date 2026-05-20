@@ -41,6 +41,9 @@ This creates:
 - `artifacts/releases/legacy-accessibility-static-crawler-1.0.0-win-x64.zip`
 - `artifacts/releases/legacy-accessibility-static-crawler-1.0.0-linux-x64.tar.gz`
 - `artifacts/releases/legacy-accessibility-static-crawler-1.0.0-osx-arm64.tar.gz`
+- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.0-win-x64.zip`
+- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.0-linux-x64.tar.gz`
+- `artifacts/releases/legacy-accessibility-static-crawler-api-1.0.0-osx-arm64.tar.gz`
 - `artifacts/releases/SHA256SUMS.txt`
 
 Individual platform scripts are also available:
@@ -55,6 +58,17 @@ pwsh ./scripts/publish-win-x64.ps1 -Version 1.0.0
 ```
 
 Each script restores, builds, tests, publishes a self-contained CLI executable, packages README/LICENSE/docs/samples, and writes the release archive under `artifacts/releases`.
+
+API/UI package scripts are also available for the local browser-based workflow:
+
+```powershell
+pwsh ./scripts/publish-api-win-x64.ps1 -Version 1.0.0
+```
+
+```bash
+./scripts/publish-api-linux-x64.sh 1.0.0
+./scripts/publish-api-osx-arm64.sh 1.0.0
+```
 
 ## GitHub Release Workflow
 
@@ -88,6 +102,9 @@ Release archives use this convention:
 legacy-accessibility-static-crawler-{version}-win-x64.zip
 legacy-accessibility-static-crawler-{version}-linux-x64.tar.gz
 legacy-accessibility-static-crawler-{version}-osx-arm64.tar.gz
+legacy-accessibility-static-crawler-api-{version}-win-x64.zip
+legacy-accessibility-static-crawler-api-{version}-linux-x64.tar.gz
+legacy-accessibility-static-crawler-api-{version}-osx-arm64.tar.gz
 SHA256SUMS.txt
 ```
 

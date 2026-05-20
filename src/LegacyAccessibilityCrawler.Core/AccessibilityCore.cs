@@ -27,6 +27,13 @@ public enum BrowserMode
     EdgeIeModeAssisted
 }
 
+public enum ScanMode
+{
+    Dynamic,
+    StaticStair,
+    Hybrid
+}
+
 public enum Severity
 {
     Info,
@@ -38,6 +45,7 @@ public enum Severity
 
 public sealed record CrawlerOptions
 {
+    public ScanMode ScanMode { get; init; } = ScanMode.Dynamic;
     public BrowserMode BrowserMode { get; init; } = BrowserMode.ModernEdge;
     public string? StartUrl { get; init; }
     public int MaxPages { get; init; } = 25;
@@ -57,6 +65,10 @@ public sealed record CrawlerOptions
     public bool ManualSession { get; init; }
     public bool Headless { get; init; } = true;
     public bool AcceptInsecureCertificates { get; init; }
+    public bool EnableMicrosoftAxe { get; init; }
+    public string? MicrosoftAxeRunnerPath { get; init; }
+    public int MicrosoftAxeTimeoutSeconds { get; init; } = 30;
+    public bool FallbackToStaticStairWhenBrowserUnavailable { get; init; } = true;
     public IReadOnlyList<string> AllowedDomains { get; init; } = [];
 }
 
@@ -402,6 +414,19 @@ public interface IRulePackService
 public interface ICrawlerService
 {
     Task<IReadOnlyList<PageCapture>> CrawlAsync(CrawlerOptions options, CancellationToken cancellationToken = default);
+}
+
+public interface IScanStrategy
+{
+    ScanMode Mode { get; }
+    Task<IReadOnlyList<PageCapture>> ScanAsync(CrawlerOptions options, CancellationToken cancellationToken = default);
+}
+
+public interface IAccessibilityEngine
+{
+    string EngineName { get; }
+    bool IsEnabled(CrawlerOptions options);
+    Task<IReadOnlyList<AccessibilityFinding>> EvaluateAsync(PageCapture page, IReadOnlyList<AccessibilityRule> rules, CrawlerOptions options, CancellationToken cancellationToken = default);
 }
 
 public interface IPdfRulesLoaderService

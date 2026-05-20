@@ -8,14 +8,16 @@ Production-oriented .NET 8 / C# static accessibility assessment crawler for mode
 
 The core system works without LLMs, OpenAI, Azure OpenAI, Foundry, or any cloud AI service. Optional future LLM support is represented only by a disabled `ILlmReviewService` interface.
 
-For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md). For release engineering, see [docs/RELEASE.md](docs/RELEASE.md). For every configuration key, see [docs/configuration-reference.md](docs/configuration-reference.md).
+For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For static stair, dynamic, hybrid, and accessibility engine hook behavior, see [docs/scanning-modes-and-accessibility-hooks.md](docs/scanning-modes-and-accessibility-hooks.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md). For release engineering, see [docs/RELEASE.md](docs/RELEASE.md). For every configuration key, see [docs/configuration-reference.md](docs/configuration-reference.md).
 
 ## What It Does
 
 - Crawls authorized websites with Selenium.
 - Supports `modern-edge`, `chrome`, and `edge-ie-mode-assisted`.
+- Supports `dynamic`, `static-stair`, and `hybrid` scan modes for modern JavaScript pages and legacy server-rendered applications such as Struts 1.x `.do` routes.
 - Captures HTML, screenshots, DOM-derived evidence, headings, links, buttons, forms, labels, images, tables, iframes, ARIA attributes, focusable elements, and legacy risks.
 - Runs deterministic static checks against built-in rule packs.
+- Provides an optional local `IAccessibilityEngine` hook for Microsoft Axe or axe-core runner integration, disabled by default.
 - Optionally extracts guidance overlays from a supplied PDF.
 - Generates JSON, HTML, Markdown, CSV, executive summary, and Azure DevOps backlog CSV reports.
 - Imports manual findings for IE-mode and assistive technology validation.
@@ -83,6 +85,8 @@ Repository keywords: `accessibility`, `wcag`, `ada-title-ii`, `section-508`, `se
 
 Download packaged releases from [GitHub Releases](https://github.com/nprasann/legacy-accessibility-static-crawler/releases).
 
+Use `legacy-accessibility-static-crawler-{version}-{runtime}` for the CLI. Use `legacy-accessibility-static-crawler-api-{version}-{runtime}` for the local API/UI package.
+
 Windows:
 
 ```powershell
@@ -142,6 +146,7 @@ Modern Edge crawl:
 ```bash
 dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
   --url https://example.gov \
+  --scan-mode dynamic \
   --browser modern-edge \
   --max-pages 25 \
   --depth 2 \
@@ -154,10 +159,35 @@ Chrome crawl:
 ```bash
 dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
   --url https://example.gov \
+  --scan-mode dynamic \
   --browser chrome \
   --max-pages 25 \
   --depth 2 \
   --output ./reports/example-chrome
+```
+
+Static stair crawl for a legacy Struts-style application:
+
+```bash
+dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
+  --url https://legacy.example.gov/home.do \
+  --scan-mode static-stair \
+  --browser modern-edge \
+  --max-pages 25 \
+  --depth 2 \
+  --output ./reports/legacy-static
+```
+
+Hybrid crawl:
+
+```bash
+dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
+  --url https://legacy.example.gov/home.do \
+  --scan-mode hybrid \
+  --browser modern-edge \
+  --max-pages 25 \
+  --depth 2 \
+  --output ./reports/legacy-hybrid
 ```
 
 Edge IE-mode-assisted crawl:
@@ -217,7 +247,7 @@ Run the API and open:
 http://localhost:5000/ui/
 ```
 
-The UI provides a crawl form with dropdowns and text boxes for common options, including browser mode, rule pack, max pages, crawl depth, optional PDF rules path, manual login mode, and headless execution. A dashboard lists generated reports and links directly to the HTML report, findings CSV, JSON report, executive summary, and Azure DevOps `ado-items.csv`.
+The UI provides a crawl form with dropdowns and text boxes for common options, including scan mode, browser mode, rule pack, max pages, crawl depth, optional PDF rules path, manual login mode, Microsoft Axe hook mode, and headless execution. A dashboard lists generated reports and links directly to the HTML report, findings CSV, JSON report, executive summary, and Azure DevOps `ado-items.csv`.
 
 The UI includes an API key field because the local API is protected. Configure authorized target domains and the API key in `appsettings.json` before starting a crawl.
 
@@ -239,6 +269,8 @@ Initial distribution is ZIP-based. An MSI installer is possible later, but porta
 4. Run the executable.
 
 Users do not need the .NET SDK when using a self-contained release ZIP. They still need Chrome or Edge installed. WebDriver binaries are included through Selenium driver packages where supported, but browser versions and driver versions must remain compatible.
+
+Release packages bundle the pinned ChromeDriver and EdgeDriver binaries into the archive root. The crawler resolves those local drivers relative to the executable before using Selenium defaults. If a compatible browser environment cannot start, the default configuration falls back to `static-stair` crawling so legacy server-rendered applications can still be assessed.
 
 Windows example:
 
